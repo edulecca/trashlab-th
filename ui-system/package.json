@@ -1,5 +1,25 @@
 {
   "name": "ui-system",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@storybook/react-vite": "10.4.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "storybook": "10.4.6",
+    "typescript": "^5",
+    "vite": "^8.1.2"
+  }
 }

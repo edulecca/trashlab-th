@@ -5,5 +5,10 @@
   "workspaces": [
     "app",
     "ui-system"
-  ]
+  ],
+  "scripts": {
+    "dev": "npm run dev -w app",
+    "storybook": "npm run storybook -w ui-system",
+    "build-storybook": "npm run build-storybook -w ui-system"
+  }
 }

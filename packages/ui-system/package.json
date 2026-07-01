@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles/globals.css"
+  },
   "scripts": {
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"

@@ -1,0 +1,6 @@
+/* Design system theme (tokens, base layer, Tailwind) lives in ui-system. */
+@import "../../../packages/ui-system/src/styles/globals.css";
+
+/* Tailwind ignores node_modules by default — scan the design-system source
+   so the classes its components use get generated in the app build too. */
+@source "../../../packages/ui-system/src";

@@ -12,8 +12,8 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 
-import { cn } from "@/lib/utils"
-import { Checkbox } from "@/components/ui/checkbox"
+import { cn } from "../../lib/utils"
+import { Checkbox } from "./checkbox"
 import {
   Table,
   TableBody,
@@ -21,7 +21,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "./table"
 
 declare module "@tanstack/react-table" {
   // Per-column styling: applied to the header cell and every body cell.

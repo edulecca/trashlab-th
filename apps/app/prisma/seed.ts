@@ -1,10 +1,18 @@
 import "dotenv/config";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient, Prisma } from "../generated/prisma/client";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
+
+// --- invoice file blobs: sample PDFs shipped as fixtures, embedded as BYTEA.
+// No object storage (S3) for the MVP — the bill's file lives in the DB.
+const fixture = (name: string) => readFileSync(join(__dirname, "fixtures", name));
+const invoicePdfA = fixture("sample-invoice.pdf");
+const invoicePdfB = fixture("sample-invoice-2.pdf");
 
 // --- date helpers (relative to run time) ---------------------------------
 const now = new Date();
@@ -120,7 +128,7 @@ async function main() {
       currency: "USD",
       invoiceDate: daysFromNow(-40),
       dueDate: daysFromNow(-5), // past due, not paid => overdue
-      fileUrl: "https://files.example.com/invoices/FIG-2043.pdf",
+      file: invoicePdfA,
       vendorId: figma.id,
       uploadedById: bruno.id,
       lineItems: { create: reviewItems.create },
@@ -141,6 +149,7 @@ async function main() {
       currency: "USD",
       invoiceDate: daysFromNow(-8),
       dueDate: daysFromNow(15),
+      file: invoicePdfB,
       vendorId: linear.id,
       uploadedById: ana.id,
       approvedById: carla.id,
@@ -163,6 +172,7 @@ async function main() {
       currency: "USD",
       invoiceDate: daysFromNow(-6),
       dueDate: daysFromNow(9),
+      file: invoicePdfA,
       vendorId: aws.id,
       uploadedById: bruno.id,
       approvedById: carla.id,
@@ -225,6 +235,7 @@ async function main() {
       currency: "USD",
       invoiceDate: daysFromNow(-20),
       dueDate: daysFromNow(-1), // past due, not paid => overdue
+      file: invoicePdfB,
       vendorId: slack.id,
       uploadedById: bruno.id,
       approvedById: carla.id,

@@ -1,9 +1,9 @@
-import { AppShell } from "./_components/app-shell";
+import { BackofficeLayout } from "@/components/backoffice-layout";
 
 export default function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <AppShell>{children}</AppShell>;
+  return <BackofficeLayout>{children}</BackofficeLayout>;
 }

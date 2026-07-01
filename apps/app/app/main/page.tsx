@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { Button } from "ui-system";
+
 import { isOverdue } from "@/lib/bills";
 import { prisma } from "@/lib/prisma";
 
@@ -26,12 +29,17 @@ export default async function BillsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Bills</h1>
-        <p className="text-sm text-muted-foreground">
-          {rows.length} bills
-          {overdueCount > 0 ? ` · ${overdueCount} overdue` : ""}
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Bills</h1>
+          <p className="text-sm text-muted-foreground">
+            {rows.length} bills
+            {overdueCount > 0 ? ` · ${overdueCount} overdue` : ""}
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/bill/new">New Bill</Link>
+        </Button>
       </div>
       <div className="rounded-xl border bg-background p-2">
         <BillsTable rows={rows} />

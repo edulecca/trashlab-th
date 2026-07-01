@@ -32,9 +32,9 @@ export function ResizableColumns({
       {/* Left — bill list rail */}
       <ResizablePanel
         id="left"
-        defaultSize={22}
-        minSize={15}
-        maxSize={32}
+        defaultSize="22%"
+        minSize="15%"
+        maxSize="32%"
         className="flex h-full flex-col border-r bg-background"
       >
         {left}
@@ -45,8 +45,8 @@ export function ResizableColumns({
       {/* Center — bill form */}
       <ResizablePanel
         id="center"
-        defaultSize={46}
-        minSize={30}
+        defaultSize="46%"
+        minSize="30%"
         className="flex h-full min-w-0 flex-col bg-background"
       >
         {children}
@@ -57,9 +57,9 @@ export function ResizableColumns({
       {/* Right — document preview */}
       <ResizablePanel
         id="right"
-        defaultSize={32}
-        minSize={20}
-        maxSize={50}
+        defaultSize="32%"
+        minSize="20%"
+        maxSize="50%"
         className="h-full min-w-0"
       >
         {right}

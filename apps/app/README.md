@@ -26,6 +26,18 @@ Scripts: `db:generate` (client), `db:migrate` (dev migration), `db:deploy`
 > The seed **resets** the database to a known state — point `DATABASE_URL` at a
 > dedicated demo database, not one with data you care about.
 
+## AI bill extraction
+
+Uploading an invoice PDF on the create-bill page runs it through Claude (via the
+Vercel AI SDK) to pre-fill the form. Set an Anthropic API key in `.env`:
+
+```bash
+ANTHROPIC_API_KEY="sk-ant-..."   # https://console.anthropic.com/
+```
+
+The endpoint lives at `POST /api/extract`; see
+`openspec/changes/add-ai-bill-extraction` for the design.
+
 ## Getting Started
 
 First, run the development server:

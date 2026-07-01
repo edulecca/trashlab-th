@@ -1,30 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { Badge, Button, cn } from "ui-system";
 
-/** Shape of the fields an OCR pass extracts from an uploaded invoice. */
-export type DetectedBill = {
-  vendorName: string;
-  vendorEmail: string;
-  number: string;
-  invoiceDate: string; // yyyy-mm-dd (input[type=date] value)
-  dueDate: string; // yyyy-mm-dd
-  amount: string;
-  currency: string;
-  description: string;
-};
-
-const EMPTY: DetectedBill = {
-  vendorName: "",
-  vendorEmail: "",
-  number: "",
-  invoiceDate: "",
-  dueDate: "",
-  amount: "",
-  currency: "",
-  description: "",
-};
+import { useBillDraft, type DraftForm } from "@/stores/bill-draft";
+import { saveDraft } from "../actions";
 
 function SectionBadge({ complete }: { complete: boolean }) {
   return complete ? (
@@ -54,13 +35,25 @@ function Field({
 const inputClass =
   "h-10 w-full rounded-md border bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40";
 
-export function BillForm({ detected }: { detected?: DetectedBill }) {
-  const [form, setForm] = useState<DetectedBill>(detected ?? EMPTY);
+export function BillForm() {
+  // The form binds to the shared draft store: the AI extraction pre-fills it,
+  // the user edits from there, and submit (later) persists it.
+  const form = useBillDraft((s) => s.form);
+  const setField = useBillDraft((s) => s.setField);
+  const status = useBillDraft((s) => s.status);
+  const error = useBillDraft((s) => s.error);
+  const file = useBillDraft((s) => s.file);
+
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const set =
-    (key: keyof DetectedBill) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((prev) => ({ ...prev, [key]: e.target.value }));
+    (key: keyof DraftForm) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setField(key, e.target.value);
+      setSaved(false);
+    };
 
   const vendorComplete = form.vendorName.trim().length > 0;
   const detailsComplete = Boolean(
@@ -72,13 +65,28 @@ export function BillForm({ detected }: { detected?: DetectedBill }) {
       ? `${form.vendorName} INV# ${form.number}`
       : "New bill";
 
-  function onSaveDraft() {
-    // Stubbed — persistence lands in a follow-up change.
-    console.log("[bill] save draft", form);
+  async function onSaveDraft() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const fd = new FormData();
+      (Object.keys(form) as (keyof DraftForm)[]).forEach((k) =>
+        fd.append(k, form[k])
+      );
+      // The PDF blob (held in the store during review) is persisted as Bill.file.
+      if (file) fd.append("file", file);
+      await saveDraft(fd);
+      setSaved(true);
+    } catch (err) {
+      console.error("[bill] save draft failed", err);
+      setSaveError("Could not save the draft. Try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function onCreate() {
-    // Stubbed — persistence lands in a follow-up change.
+    // Stubbed — the full create/approve flow lands in a follow-up change.
     console.log("[bill] create bill", form);
   }
 
@@ -88,6 +96,12 @@ export function BillForm({ detected }: { detected?: DetectedBill }) {
       <div className="shrink-0 px-8 pt-8">
         <Badge variant="secondary">Draft</Badge>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">{title}</h1>
+        {error && status === "error" ? (
+          <div className="mt-3 flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <AlertCircle className="size-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        ) : null}
       </div>
 
       {/* Scrollable body */}
@@ -179,8 +193,20 @@ export function BillForm({ detected }: { detected?: DetectedBill }) {
       </div>
 
       {/* Sticky footer actions */}
-      <div className="flex shrink-0 items-center justify-end gap-2 border-t bg-background px-8 py-3">
-        <Button variant="ghost" onClick={onSaveDraft}>
+      <div className="flex shrink-0 items-center justify-end gap-3 border-t bg-background px-8 py-3">
+        {saveError ? (
+          <span className="mr-auto flex items-center gap-1.5 text-sm text-destructive">
+            <AlertCircle className="size-4" />
+            {saveError}
+          </span>
+        ) : saved ? (
+          <span className="mr-auto flex items-center gap-1.5 text-sm text-green-600">
+            <CheckCircle2 className="size-4" />
+            Draft saved
+          </span>
+        ) : null}
+        <Button variant="ghost" onClick={onSaveDraft} disabled={saving}>
+          {saving ? <Loader2 className="size-4 animate-spin" /> : null}
           Save draft
         </Button>
         <Button onClick={onCreate}>Create bill</Button>

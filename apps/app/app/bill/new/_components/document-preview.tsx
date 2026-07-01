@@ -1,23 +1,27 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FileText, RefreshCw, Upload } from "lucide-react";
+import { FileText, Loader2, RefreshCw, Upload } from "lucide-react";
 import { Button } from "ui-system";
+
+import { useBillDraft } from "@/stores/bill-draft";
+import type { ExtractResult } from "@/lib/ai/schema";
 
 /**
  * Right-column preview of the source invoice.
  *
- * Renders a real PDF: the user picks a file from disk and we hand the browser's
- * native PDF viewer a local object URL — no upload backend yet. Empty state
- * shows an "Agregar PDF" action.
+ * The user picks a PDF; we show it in the native viewer and POST it to
+ * /api/extract, which pre-fills the create-bill form (via the draft store).
  */
-export function DocumentPreview({
-  onFileChange,
-}: {
-  onFileChange?: (file: File | null) => void;
-}) {
+export function DocumentPreview() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [doc, setDoc] = useState<{ file: File; url: string } | null>(null);
+
+  const setFile = useBillDraft((s) => s.setFile);
+  const setStatus = useBillDraft((s) => s.setStatus);
+  const setError = useBillDraft((s) => s.setError);
+  const loadExtraction = useBillDraft((s) => s.loadExtraction);
+  const status = useBillDraft((s) => s.status);
 
   // Track the live object URL so it can be revoked on unmount.
   const urlRef = useRef<string | null>(null);
@@ -31,17 +35,39 @@ export function DocumentPreview({
     inputRef.current?.click();
   }
 
+  async function runExtraction(file: File) {
+    setStatus("extracting");
+    setError(null);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/extract", { method: "POST", body });
+      const result = (await res.json()) as ExtractResult;
+      if (result.ok) {
+        loadExtraction(result.data);
+      } else {
+        setStatus("error");
+        setError(result.error.message);
+      }
+    } catch {
+      setStatus("error");
+      setError("Upload failed. Check your connection and try again.");
+    }
+  }
+
   function onInput(e: React.ChangeEvent<HTMLInputElement>) {
     const next = e.target.files?.[0] ?? null;
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     const nextUrl = next ? URL.createObjectURL(next) : null;
     urlRef.current = nextUrl;
     setDoc(next && nextUrl ? { file: next, url: nextUrl } : null);
-    onFileChange?.(next);
+    setFile(next);
+    if (next) void runExtraction(next);
   }
 
   const file = doc?.file ?? null;
   const url = doc?.url ?? null;
+  const extracting = status === "extracting";
 
   return (
     <div className="flex h-full flex-col bg-muted/40">
@@ -50,7 +76,7 @@ export function DocumentPreview({
           {file ? file.name : "Invoice"}
         </span>
         {file ? (
-          <Button variant="ghost" size="sm" onClick={pick}>
+          <Button variant="ghost" size="sm" onClick={pick} disabled={extracting}>
             <RefreshCw data-icon="inline-start" />
             Cambiar
           </Button>
@@ -59,18 +85,26 @@ export function DocumentPreview({
 
       <div className="min-h-0 flex-1 p-4">
         {url ? (
-          <iframe
-            src={url}
-            title={file?.name ?? "Invoice preview"}
-            className="h-full w-full rounded-lg border bg-background"
-          />
+          <div className="relative h-full">
+            <iframe
+              src={url}
+              title={file?.name ?? "Invoice preview"}
+              className="h-full w-full rounded-lg border bg-background"
+            />
+            {extracting ? (
+              <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-lg bg-background/70 text-sm font-medium backdrop-blur-sm">
+                <Loader2 className="size-4 animate-spin" />
+                Reading invoice…
+              </div>
+            ) : null}
+          </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-4 rounded-lg border border-dashed bg-background">
             <FileText className="size-9 text-muted-foreground" />
             <div className="text-center">
               <p className="text-sm font-medium">No document yet</p>
               <p className="text-sm text-muted-foreground">
-                Add the vendor invoice to get started.
+                Add the vendor invoice to auto-fill the form.
               </p>
             </div>
             <Button onClick={pick}>

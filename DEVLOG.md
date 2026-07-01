@@ -48,3 +48,13 @@ Registro cronológico de decisiones y trabajo, para luego volcarlo al README / e
 - `bills-table.tsx` se queda en el `_components/` de la ruta (es específico de Bills).
 - Import en `app/main/layout.tsx` actualizado a `@/components/app-shell`.
 - Verificado: `tsc --noEmit` limpio, `GET /main → 200`.
+- (Nota posterior) `AppShell` fue renombrado a `BackofficeLayout`
+  (`components/backoffice-layout.tsx`).
+
+### Pendiente — archivo de factura como blob
+- Decisión: para el MVP (sin S3) la factura se guarda como **blob embebido en el seed**,
+  no como ruta/URL ni upload real.
+- Implica cambiar el schema: `Bill.fileUrl String?` → `file Bytes?` (Postgres `BYTEA`)
+  + migración. Alternativa: base64 en `String` (renombrar a `fileData`).
+- Seed actual es inconsistente (1 bill con link externo falso, 5 con `null`);
+  se rehará cuando se cargue el blob.

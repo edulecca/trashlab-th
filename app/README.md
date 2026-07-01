@@ -1,5 +1,31 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Database (Prisma + PostgreSQL)
+
+The Bill Pay data model lives in `prisma/schema.prisma` (see
+`openspec/changes/add-billpay-data-model` for the design).
+
+1. **Set the connection string.** Copy `.env.example` to `.env` and set
+   `DATABASE_URL` to your PostgreSQL instance (local, or a hosted free tier
+   such as Neon / Supabase). `.env` is gitignored — never commit it.
+
+   ```bash
+   cp .env.example .env   # then edit DATABASE_URL
+   ```
+
+2. **Create the schema and seed demo data:**
+
+   ```bash
+   npm run db:migrate -w app   # creates the schema (prisma migrate dev)
+   npm run db:seed    -w app   # loads realistic demo data
+   ```
+
+Scripts: `db:generate` (client), `db:migrate` (dev migration), `db:deploy`
+(apply migrations, prod), `db:seed`, `db:reset` (drop + re-migrate + reseed).
+
+> The seed **resets** the database to a known state — point `DATABASE_URL` at a
+> dedicated demo database, not one with data you care about.
+
 ## Getting Started
 
 First, run the development server:

@@ -1,0 +1,270 @@
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+import { PrismaClient, Prisma } from "../generated/prisma/client";
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
+
+// --- date helpers (relative to run time) ---------------------------------
+const now = new Date();
+const day = 24 * 60 * 60 * 1000;
+const daysFromNow = (n: number) => new Date(now.getTime() + n * day);
+
+// --- line item helper: builds items and returns their reconciled total ----
+type SeedLineItem = {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  type: "EXPENSE" | "ITEM";
+  category?: string;
+};
+
+function lineItems(items: SeedLineItem[]) {
+  const create = items.map((it, order) => ({
+    description: it.description,
+    quantity: new Prisma.Decimal(it.quantity),
+    unitPrice: new Prisma.Decimal(it.unitPrice),
+    total: new Prisma.Decimal(it.quantity * it.unitPrice),
+    type: it.type,
+    category: it.category ?? null,
+    order,
+  }));
+  const amount = items.reduce((sum, it) => sum + it.quantity * it.unitPrice, 0);
+  return { create, amount: new Prisma.Decimal(amount) };
+}
+
+async function main() {
+  // Reset to a known state (repeatable) — delete children first.
+  await prisma.payment.deleteMany();
+  await prisma.billLineItem.deleteMany();
+  await prisma.bill.deleteMany();
+  await prisma.paymentMethod.deleteMany();
+  await prisma.vendor.deleteMany();
+  await prisma.user.deleteMany();
+
+  // --- Payment method catalog --------------------------------------------
+  // Catalog of four methods; `card` is created for completeness even though
+  // the seeded payments below only exercise ach / check / wire.
+  const [ach, check, wire] = await Promise.all(
+    [
+      { slug: "ach", description: "ACH bank transfer" },
+      { slug: "check", description: "Paper check" },
+      { slug: "wire", description: "Wire transfer" },
+      { slug: "card", description: "Corporate card" },
+    ].map((data) => prisma.paymentMethod.create({ data }))
+  );
+
+  // --- Users -------------------------------------------------------------
+  const ana = await prisma.user.create({
+    data: { name: "Ana Torres", email: "ana@trashlab.co" },
+  });
+  const bruno = await prisma.user.create({
+    data: { name: "Bruno Díaz", email: "bruno@trashlab.co" },
+  });
+  const carla = await prisma.user.create({
+    data: { name: "Carla Méndez", email: "carla@trashlab.co" },
+  });
+
+  // --- Vendors -----------------------------------------------------------
+  const vercel = await prisma.vendor.create({
+    data: { name: "Vercel", email: "ap@vercel.com", address: "San Francisco, CA" },
+  });
+  const aws = await prisma.vendor.create({
+    data: { name: "Amazon Web Services", email: "billing@aws.com", address: "Seattle, WA" },
+  });
+  const figma = await prisma.vendor.create({
+    data: { name: "Figma", email: "ap@figma.com", address: "San Francisco, CA" },
+  });
+  const linear = await prisma.vendor.create({
+    data: { name: "Linear", email: "billing@linear.app" },
+  });
+  const notion = await prisma.vendor.create({
+    data: { name: "Notion Labs", email: "ap@notion.so" },
+  });
+  const slack = await prisma.vendor.create({
+    data: { name: "Slack", email: "billing@slack.com", address: "San Francisco, CA" },
+  });
+
+  // --- Bills (one per status) --------------------------------------------
+
+  // DRAFT — just uploaded, not yet reviewed.
+  const draftItems = lineItems([
+    { description: "Notion Plus — 12 seats", quantity: 12, unitPrice: 8, type: "EXPENSE", category: "Software" },
+  ]);
+  await prisma.bill.create({
+    data: {
+      number: "NOT-1090",
+      status: "DRAFT",
+      source: "MANUAL",
+      amount: draftItems.amount,
+      currency: "USD",
+      invoiceDate: daysFromNow(-3),
+      dueDate: daysFromNow(25),
+      vendorId: notion.id,
+      uploadedById: ana.id,
+      lineItems: { create: draftItems.create },
+    },
+  });
+
+  // NEEDS_REVIEW — OCR-ingested, past due => derives as OVERDUE.
+  const reviewItems = lineItems([
+    { description: "Figma Organization — annual", quantity: 30, unitPrice: 45, type: "EXPENSE", category: "Software" },
+  ]);
+  await prisma.bill.create({
+    data: {
+      number: "FIG-2043",
+      status: "NEEDS_REVIEW",
+      source: "OCR",
+      amount: reviewItems.amount,
+      currency: "USD",
+      invoiceDate: daysFromNow(-40),
+      dueDate: daysFromNow(-5), // past due, not paid => overdue
+      fileUrl: "https://files.example.com/invoices/FIG-2043.pdf",
+      vendorId: figma.id,
+      uploadedById: bruno.id,
+      lineItems: { create: reviewItems.create },
+    },
+  });
+
+  // APPROVED — reviewed and approved, not yet scheduled.
+  const approvedItems = lineItems([
+    { description: "Linear — 40 seats", quantity: 40, unitPrice: 8, type: "EXPENSE", category: "Software" },
+    { description: "Onboarding setup", quantity: 1, unitPrice: 150, type: "ITEM", category: "Services" },
+  ]);
+  await prisma.bill.create({
+    data: {
+      number: "LIN-5521",
+      status: "APPROVED",
+      source: "EMAIL",
+      amount: approvedItems.amount,
+      currency: "USD",
+      invoiceDate: daysFromNow(-8),
+      dueDate: daysFromNow(15),
+      vendorId: linear.id,
+      uploadedById: ana.id,
+      approvedById: carla.id,
+      lineItems: { create: approvedItems.create },
+    },
+  });
+
+  // SCHEDULED — approved and a payment is in flight (PROCESSING).
+  const scheduledItems = lineItems([
+    { description: "EC2 compute", quantity: 1, unitPrice: 6200.5, type: "EXPENSE", category: "Infrastructure" },
+    { description: "S3 storage", quantity: 1, unitPrice: 1430, type: "EXPENSE", category: "Infrastructure" },
+    { description: "Data transfer", quantity: 1, unitPrice: 800, type: "EXPENSE", category: "Infrastructure" },
+  ]);
+  await prisma.bill.create({
+    data: {
+      number: "AWS-2042",
+      status: "SCHEDULED",
+      source: "CSV",
+      amount: scheduledItems.amount,
+      currency: "USD",
+      invoiceDate: daysFromNow(-6),
+      dueDate: daysFromNow(9),
+      vendorId: aws.id,
+      uploadedById: bruno.id,
+      approvedById: carla.id,
+      lineItems: { create: scheduledItems.create },
+      payments: {
+        create: [
+          {
+            amount: scheduledItems.amount,
+            status: "PROCESSING",
+            paymentMethodId: wire.id,
+            scheduledDate: daysFromNow(1),
+          },
+        ],
+      },
+    },
+  });
+
+  // PAID — fully paid; past due date but PAID => never overdue.
+  const paidItems = lineItems([
+    { description: "Vercel Pro — 10 seats", quantity: 10, unitPrice: 20, type: "EXPENSE", category: "Software" },
+    { description: "Extra bandwidth", quantity: 1, unitPrice: 1000, type: "ITEM", category: "Infrastructure" },
+  ]);
+  await prisma.bill.create({
+    data: {
+      number: "VER-2041",
+      status: "PAID",
+      source: "MANUAL",
+      amount: paidItems.amount,
+      currency: "USD",
+      invoiceDate: daysFromNow(-30),
+      dueDate: daysFromNow(-2),
+      vendorId: vercel.id,
+      uploadedById: ana.id,
+      approvedById: carla.id,
+      lineItems: { create: paidItems.create },
+      payments: {
+        create: [
+          {
+            amount: paidItems.amount,
+            status: "PAID",
+            paymentMethodId: ach.id,
+            scheduledDate: daysFromNow(-4),
+            processedAt: daysFromNow(-3),
+          },
+        ],
+      },
+    },
+  });
+
+  // FAILED — first payment failed, then retried (1:N). Past due => overdue.
+  const failedItems = lineItems([
+    { description: "Slack Business+ — 60 seats", quantity: 60, unitPrice: 15, type: "EXPENSE", category: "Software" },
+  ]);
+  await prisma.bill.create({
+    data: {
+      number: "SLK-7781",
+      status: "FAILED",
+      source: "EMAIL",
+      amount: failedItems.amount,
+      currency: "USD",
+      invoiceDate: daysFromNow(-20),
+      dueDate: daysFromNow(-1), // past due, not paid => overdue
+      vendorId: slack.id,
+      uploadedById: bruno.id,
+      approvedById: carla.id,
+      lineItems: { create: failedItems.create },
+      payments: {
+        create: [
+          {
+            amount: failedItems.amount,
+            status: "FAILED",
+            paymentMethodId: ach.id,
+            scheduledDate: daysFromNow(-3),
+            processedAt: daysFromNow(-3),
+          },
+          {
+            amount: failedItems.amount,
+            status: "SCHEDULED",
+            paymentMethodId: check.id,
+            scheduledDate: daysFromNow(2),
+          },
+        ],
+      },
+    },
+  });
+
+  const [bills, payments, methods] = await Promise.all([
+    prisma.bill.count(),
+    prisma.payment.count(),
+    prisma.paymentMethod.count(),
+  ]);
+  console.log(
+    `Seeded ${bills} bills, ${payments} payments, ${methods} payment methods, 3 users, 6 vendors.`
+  );
+}
+
+main()
+  .then(async () => {
+    await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });

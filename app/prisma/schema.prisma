@@ -1,0 +1,146 @@
+// Bill Pay (Accounts Payable) data model.
+// See openspec/changes/add-billpay-data-model for the design and rationale.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+/// Bill lifecycle state machine. OVERDUE is derived, never stored.
+enum BillStatus {
+  DRAFT
+  NEEDS_REVIEW
+  APPROVED
+  SCHEDULED
+  PAID
+  FAILED
+}
+
+/// How a bill entered the system (Ramp-style entry points).
+enum BillSource {
+  MANUAL
+  OCR
+  EMAIL
+  CSV
+}
+
+/// Line item classification: expense vs. purchasable item.
+enum LineItemType {
+  EXPENSE
+  ITEM
+}
+
+/// Execution status of a single payment attempt.
+enum PaymentStatus {
+  SCHEDULED
+  PROCESSING
+  PAID
+  FAILED
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  img       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploadedBills Bill[] @relation("BillUploadedBy")
+  approvedBills Bill[] @relation("BillApprovedBy")
+}
+
+model Vendor {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  address   String?
+  img       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bills Bill[]
+}
+
+model Bill {
+  id          String     @id @default(uuid())
+  number      String
+  status      BillStatus @default(DRAFT)
+  source      BillSource @default(MANUAL)
+  amount      Decimal    @db.Decimal(12, 2)
+  currency    String     @default("USD")
+  invoiceDate DateTime
+  dueDate     DateTime
+  fileUrl     String?
+  memo        String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  vendorId     String
+  vendor       Vendor  @relation(fields: [vendorId], references: [id])
+  uploadedById String
+  uploadedBy   User    @relation("BillUploadedBy", fields: [uploadedById], references: [id])
+  approvedById String?
+  approvedBy   User?   @relation("BillApprovedBy", fields: [approvedById], references: [id])
+
+  lineItems BillLineItem[]
+  payments  Payment[]
+
+  @@index([status])
+  @@index([vendorId])
+  @@index([dueDate])
+}
+
+model BillLineItem {
+  id          String       @id @default(uuid())
+  description String
+  quantity    Decimal      @db.Decimal(12, 2)
+  unitPrice   Decimal      @db.Decimal(12, 2)
+  total       Decimal      @db.Decimal(12, 2)
+  type        LineItemType @default(EXPENSE)
+  category    String?
+  order       Int
+
+  billId String
+  bill   Bill   @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  @@index([billId])
+}
+
+model PaymentMethod {
+  id          String @id @default(uuid())
+  slug        String @unique
+  description String
+
+  payments Payment[]
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  amount        Decimal       @db.Decimal(12, 2)
+  status        PaymentStatus @default(SCHEDULED)
+  scheduledDate DateTime?
+  processedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  billId          String
+  bill            Bill          @relation(fields: [billId], references: [id], onDelete: Cascade)
+  paymentMethodId String
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+
+  @@index([billId])
+  @@index([status])
+}

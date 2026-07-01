@@ -51,10 +51,20 @@ Registro cronológico de decisiones y trabajo, para luego volcarlo al README / e
 - (Nota posterior) `AppShell` fue renombrado a `BackofficeLayout`
   (`components/backoffice-layout.tsx`).
 
-### Pendiente — archivo de factura como blob
-- Decisión: para el MVP (sin S3) la factura se guarda como **blob embebido en el seed**,
-  no como ruta/URL ni upload real.
-- Implica cambiar el schema: `Bill.fileUrl String?` → `file Bytes?` (Postgres `BYTEA`)
-  + migración. Alternativa: base64 en `String` (renombrar a `fileData`).
-- Seed actual es inconsistente (1 bill con link externo falso, 5 con `null`);
-  se rehará cuando se cargue el blob.
+### Archivo de factura como blob (implementado)
+- Decisión: para el MVP (sin S3) la factura se guarda como **blob en la DB**, no como
+  ruta/URL ni upload real.
+- Schema: `Bill.fileUrl String?` → `file Bytes?` (Postgres `BYTEA`).
+  Migración `20260701223522_bill_file_blob`.
+- Fixtures: dos PDFs de muestra generados en `prisma/fixtures/` (sample-invoice.pdf,
+  sample-invoice-2.pdf), embebidos en el seed vía `readFileSync`.
+- Seed: 4 bills con adjunto (OCR/EMAIL/CSV → 883–890 bytes) y 2 `MANUAL` con `file = null`
+  (para mostrar el estado "sin adjunto" en el UI).
+- Gotchas resueltos:
+  - `migrate dev` es interactivo cuando el drop de columna tiene datos → se limpió
+    `fileUrl` con SQL (`UPDATE "Bill" SET "fileUrl" = NULL`) antes de migrar.
+  - El cliente Prisma no se regeneró solo → `npx prisma generate` manual.
+  - El dev server y la caché de Turbopack (`.next`) quedaron con el cliente viejo
+    (pedían `Bill.fileUrl`) → `rm -rf .next` + restart. `/main` y `/bill/new` → 200.
+- **Pendiente UI:** ruta para servir el blob (ej. `/api/bills/[id]/file` con
+  `Content-Type: application/pdf`) y botón "Ver factura" que la consuma.

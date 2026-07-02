@@ -4,10 +4,15 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Badge, Button, DataTable } from "ui-system";
 
+import { VendorElementRow } from "./vendor-element-row";
+
 export type BillRow = {
   id: string;
   number: string;
   vendor: string;
+  vendorImg: string | null;
+  uploadedBy: string;
+  uploadedAt: string;
   status:
     | "DRAFT"
     | "NEEDS_REVIEW"
@@ -47,13 +52,19 @@ function date(iso: string) {
   });
 }
 
+
 const columns: ColumnDef<BillRow>[] = [
   {
     accessorKey: "vendor",
     header: "Vendor",
     meta: { className: "border-r" },
     cell: ({ row }) => (
-      <span className="font-medium">{row.getValue("vendor")}</span>
+      <VendorElementRow
+        vendor={row.original.vendor}
+        img={row.original.vendorImg}
+        uploadedBy={row.original.uploadedBy}
+        uploadedAt={row.original.uploadedAt}
+      />
     ),
   },
   {

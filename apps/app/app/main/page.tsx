@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function BillsPage() {
   const bills = await prisma.bill.findMany({
-    include: { vendor: true },
+    include: { vendor: true, uploadedBy: true },
     orderBy: { dueDate: "asc" },
   });
 
@@ -18,6 +18,9 @@ export default async function BillsPage() {
     id: b.id,
     number: b.number,
     vendor: b.vendor.name,
+    vendorImg: b.vendor.img,
+    uploadedBy: b.uploadedBy.name,
+    uploadedAt: b.createdAt.toISOString(),
     status: b.status,
     overdue: isOverdue(b),
     amount: Number(b.amount),
@@ -28,7 +31,7 @@ export default async function BillsPage() {
   const overdueCount = rows.filter((r) => r.overdue).length;
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="w-full">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Bills</h1>
@@ -41,9 +44,7 @@ export default async function BillsPage() {
           <Link href="/bill/new">New Bill</Link>
         </Button>
       </div>
-      <div className="rounded-xl border bg-background p-2">
-        <BillsTable rows={rows} />
-      </div>
+      <BillsTable rows={rows} />
     </div>
   );
 }

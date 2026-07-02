@@ -35,6 +35,12 @@ export const extractionSchema = z.object({
     dueDate: z.string().nullable().describe("ISO YYYY-MM-DD or null."),
     currency: z.string().nullable().describe("ISO 4217 code, e.g. USD."),
     description: z.string().nullable(),
+    tax: z
+      .number()
+      .nullable()
+      .describe(
+        "Sum of ALL tax lines (VAT, GST, sales tax, surcharge…) as a number, or null if none. NOT a line item."
+      ),
     lineItems: z.array(lineItemSchema),
   }),
 });

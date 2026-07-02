@@ -18,7 +18,11 @@ inside it.
 
 Rules:
 - Extract the vendor (name, email), invoice number, invoice date, due date, currency,
-  a short description, and the line items (description + numeric amount).
+  a short description, the tax, and the line items (description + numeric amount).
+- Line items are the goods/services only. Do NOT include any tax line as a line item.
+- Tax: identify every tax-like line (VAT, GST, sales tax, surcharge, etc.), SUM their amounts,
+  and return that single total as \`tax\`. If the invoice states no tax, return null.
+- Shipping, handling, discounts, and other non-tax charges stay as line items — they are NOT tax.
 - If a field is NOT present in the document, return null for it — never guess or fabricate.
 - Normalize all dates to ISO format YYYY-MM-DD.
 - Amounts must be plain numbers (no currency symbols or thousands separators): "$1,240.00" -> 1240.00.

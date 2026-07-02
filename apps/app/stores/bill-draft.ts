@@ -16,7 +16,7 @@ export type DraftStatus = "idle" | "extracting" | "ready" | "error";
 /** A single editable line item. Price is a string to keep the input controlled. */
 export type DraftLineItem = { description: string; amount: string };
 
-/** Header/vendor fields the form binds to. Amounts live in `lineItems`. */
+/** Header/vendor fields the form binds to. Line-item prices live in `lineItems`. */
 export type DraftForm = {
   vendorName: string;
   vendorEmail: string;
@@ -25,6 +25,7 @@ export type DraftForm = {
   dueDate: string; // yyyy-mm-dd
   currency: string;
   description: string;
+  tax: string; // grand-total tax, kept as a string to keep the input controlled
 };
 
 const EMPTY_FORM: DraftForm = {
@@ -35,6 +36,7 @@ const EMPTY_FORM: DraftForm = {
   dueDate: "",
   currency: "",
   description: "",
+  tax: "0",
 };
 
 const EMPTY_ITEM: DraftLineItem = { description: "", amount: "" };
@@ -48,6 +50,7 @@ function formFromExtraction(data: ExtractionData): DraftForm {
     dueDate: data.bill.dueDate ?? "",
     currency: data.bill.currency ?? "",
     description: data.bill.description ?? "",
+    tax: data.bill.tax != null ? String(data.bill.tax) : "0",
   };
 }
 
@@ -59,12 +62,20 @@ function itemsFromExtraction(data: ExtractionData): DraftLineItem[] {
   return items.length > 0 ? items : [{ ...EMPTY_ITEM }];
 }
 
-/** Sum of line-item prices; non-numeric prices contribute 0. */
-export function invoiceTotal(items: DraftLineItem[]): number {
-  return items.reduce((sum, it) => {
-    const n = parseFloat(it.amount);
-    return sum + (Number.isNaN(n) ? 0 : n);
-  }, 0);
+/** Coerce a controlled numeric string to a number; non-numeric → 0. */
+function num(value: string): number {
+  const n = parseFloat(value);
+  return Number.isNaN(n) ? 0 : n;
+}
+
+/** Subtotal: sum of line-item prices; non-numeric prices contribute 0. */
+export function subtotal(items: DraftLineItem[]): number {
+  return items.reduce((sum, it) => sum + num(it.amount), 0);
+}
+
+/** Grand total the payer owes: subtotal + tax. */
+export function invoiceTotal(items: DraftLineItem[], tax: string): number {
+  return subtotal(items) + num(tax);
 }
 
 type BillDraftState = {

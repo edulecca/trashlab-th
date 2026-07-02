@@ -6,6 +6,7 @@ import { Badge, Button, cn } from "ui-system";
 
 import {
   useBillDraft,
+  subtotal as sumItems,
   invoiceTotal,
   type DraftForm,
   type DraftLineItem,
@@ -83,10 +84,11 @@ export function BillForm() {
       setSaved(false);
     };
 
-  const total = invoiceTotal(lineItems);
+  const subtotal = sumItems(lineItems);
+  const total = invoiceTotal(lineItems, form.tax);
   const vendorComplete = form.vendorName.trim().length > 0;
   const detailsComplete = Boolean(
-    form.number && form.invoiceDate && form.dueDate && total > 0
+    form.number && form.invoiceDate && form.dueDate && subtotal > 0
   );
 
   const title =
@@ -248,25 +250,49 @@ export function BillForm() {
             ))}
           </div>
 
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                addLineItem();
-                setSaved(false);
-              }}
-            >
-              <Plus data-icon="inline-start" />
-              Add line item
-            </Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              addLineItem();
+              setSaved(false);
+            }}
+          >
+            <Plus data-icon="inline-start" />
+            Add line item
+          </Button>
 
-            <div className="text-right">
-              <p className="text-xs font-medium text-muted-foreground">
+          {/* Totals breakdown: subtotal (Σ items) + tax = invoice total */}
+          <div className="ml-auto w-full max-w-xs space-y-2 border-t pt-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span className="tabular-nums">
+                {money(subtotal, form.currency)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <label
+                htmlFor="bill-tax"
+                className="text-muted-foreground"
+              >
+                Tax
+              </label>
+              <input
+                id="bill-tax"
+                className={cn(inputClass, "h-9 w-28 text-right tabular-nums")}
+                value={form.tax}
+                onChange={set("tax")}
+                inputMode="decimal"
+                placeholder="0.00"
+                aria-label="Tax amount"
+              />
+            </div>
+            <div className="flex items-center justify-between border-t pt-2">
+              <span className="text-xs font-medium text-muted-foreground">
                 Invoice total
-              </p>
-              <p className="text-2xl font-semibold tabular-nums">
+              </span>
+              <span className="text-2xl font-semibold tabular-nums">
                 {money(total, form.currency)}
-              </p>
+              </span>
             </div>
           </div>
         </section>

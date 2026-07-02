@@ -28,7 +28,7 @@ type SeedLineItem = {
   category?: string;
 };
 
-function lineItems(items: SeedLineItem[]) {
+function lineItems(items: SeedLineItem[], taxRate = 0) {
   const create = items.map((it, order) => ({
     description: it.description,
     quantity: new Prisma.Decimal(it.quantity),
@@ -38,8 +38,14 @@ function lineItems(items: SeedLineItem[]) {
     category: it.category ?? null,
     order,
   }));
-  const amount = items.reduce((sum, it) => sum + it.quantity * it.unitPrice, 0);
-  return { create, amount: new Prisma.Decimal(amount) };
+  const subtotal = items.reduce((sum, it) => sum + it.quantity * it.unitPrice, 0);
+  const tax = Math.round(subtotal * taxRate * 100) / 100;
+  // `amount` is the grand total the payer owes: subtotal + tax (invariant).
+  return {
+    create,
+    amount: new Prisma.Decimal(subtotal + tax),
+    tax: new Prisma.Decimal(tax),
+  };
 }
 
 async function main() {
@@ -106,6 +112,7 @@ async function main() {
       status: "DRAFT",
       source: "MANUAL",
       amount: draftItems.amount,
+      tax: draftItems.tax,
       currency: "USD",
       invoiceDate: daysFromNow(-3),
       dueDate: daysFromNow(25),
@@ -116,15 +123,19 @@ async function main() {
   });
 
   // NEEDS_REVIEW — OCR-ingested, past due => derives as OVERDUE.
-  const reviewItems = lineItems([
-    { description: "Figma Organization — annual", quantity: 30, unitPrice: 45, type: "EXPENSE", category: "Software" },
-  ]);
+  const reviewItems = lineItems(
+    [
+      { description: "Figma Organization — annual", quantity: 30, unitPrice: 45, type: "EXPENSE", category: "Software" },
+    ],
+    0.085 // 8.5% sales tax
+  );
   await prisma.bill.create({
     data: {
       number: "FIG-2043",
       status: "NEEDS_REVIEW",
       source: "OCR",
       amount: reviewItems.amount,
+      tax: reviewItems.tax,
       currency: "USD",
       invoiceDate: daysFromNow(-40),
       dueDate: daysFromNow(-5), // past due, not paid => overdue
@@ -146,6 +157,7 @@ async function main() {
       status: "APPROVED",
       source: "EMAIL",
       amount: approvedItems.amount,
+      tax: approvedItems.tax,
       currency: "USD",
       invoiceDate: daysFromNow(-8),
       dueDate: daysFromNow(15),
@@ -158,17 +170,21 @@ async function main() {
   });
 
   // SCHEDULED — approved and a payment is in flight (PROCESSING).
-  const scheduledItems = lineItems([
-    { description: "EC2 compute", quantity: 1, unitPrice: 6200.5, type: "EXPENSE", category: "Infrastructure" },
-    { description: "S3 storage", quantity: 1, unitPrice: 1430, type: "EXPENSE", category: "Infrastructure" },
-    { description: "Data transfer", quantity: 1, unitPrice: 800, type: "EXPENSE", category: "Infrastructure" },
-  ]);
+  const scheduledItems = lineItems(
+    [
+      { description: "EC2 compute", quantity: 1, unitPrice: 6200.5, type: "EXPENSE", category: "Infrastructure" },
+      { description: "S3 storage", quantity: 1, unitPrice: 1430, type: "EXPENSE", category: "Infrastructure" },
+      { description: "Data transfer", quantity: 1, unitPrice: 800, type: "EXPENSE", category: "Infrastructure" },
+    ],
+    0.085 // 8.5% sales tax
+  );
   await prisma.bill.create({
     data: {
       number: "AWS-2042",
       status: "SCHEDULED",
       source: "CSV",
       amount: scheduledItems.amount,
+      tax: scheduledItems.tax,
       currency: "USD",
       invoiceDate: daysFromNow(-6),
       dueDate: daysFromNow(9),
@@ -201,6 +217,7 @@ async function main() {
       status: "PAID",
       source: "MANUAL",
       amount: paidItems.amount,
+      tax: paidItems.tax,
       currency: "USD",
       invoiceDate: daysFromNow(-30),
       dueDate: daysFromNow(-2),
@@ -232,6 +249,7 @@ async function main() {
       status: "FAILED",
       source: "EMAIL",
       amount: failedItems.amount,
+      tax: failedItems.tax,
       currency: "USD",
       invoiceDate: daysFromNow(-20),
       dueDate: daysFromNow(-1), // past due, not paid => overdue

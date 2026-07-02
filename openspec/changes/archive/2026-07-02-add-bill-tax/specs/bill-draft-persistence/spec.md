@@ -1,8 +1,5 @@
-# bill-draft-persistence Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change add-bill-draft-persistence. Update Purpose after archive.
-## Requirements
 ### Requirement: Save a reviewed bill draft
 
 The system SHALL persist a reviewed bill draft as a `Bill` row with `status = DRAFT` when the user
@@ -30,26 +27,3 @@ persisted as one `BillLineItem` row per non-empty line item. `Bill.tax` SHALL eq
 
 - **WHEN** the reviewed draft has a subtotal of 1000 and tax of 100
 - **THEN** `Bill.tax` is `100` and `Bill.amount` is `1100`
-
-### Requirement: Persist the uploaded PDF blob on save
-
-When the draft was created from an uploaded PDF, the system SHALL store the PDF bytes in `Bill.file` and
-set `source = OCR`. The PDF SHALL be held only in the client draft store during review and written only
-on save — never during extraction. A draft saved without an uploaded PDF SHALL have `file = null` and
-`source = MANUAL`.
-
-#### Scenario: PDF stored with the draft
-
-- **WHEN** the user saves a draft that was pre-filled from an uploaded PDF
-- **THEN** the created `Bill` has `source = OCR` and `Bill.file` contains the PDF bytes
-
-#### Scenario: Manual draft has no blob
-
-- **WHEN** the user saves a draft with no uploaded PDF
-- **THEN** the created `Bill` has `source = MANUAL` and `Bill.file` is null
-
-#### Scenario: No write before save
-
-- **WHEN** a PDF is uploaded and extracted but the user has not saved
-- **THEN** no `Bill` row exists and the PDF is held only in the client draft store
-

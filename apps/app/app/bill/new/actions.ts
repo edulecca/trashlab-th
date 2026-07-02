@@ -37,7 +37,10 @@ export async function saveDraft(fd: FormData) {
     .map((it) => ({ ...it, price: Number.isNaN(it.price) ? 0 : it.price }))
     .filter((it) => it.description !== "" || it.price !== 0);
 
-  const total = items.reduce((sum, it) => sum + it.price, 0);
+  const subtotalNum = items.reduce((sum, it) => sum + it.price, 0);
+  const taxNum = Math.max(0, parseFloat(get("tax")) || 0);
+  // `amount` is the grand total the payer owes: subtotal + tax.
+  const total = subtotalNum + taxNum;
 
   const file = fd.get("file");
   const bytes =
@@ -66,6 +69,7 @@ export async function saveDraft(fd: FormData) {
       status: "DRAFT",
       source: bytes ? "OCR" : "MANUAL",
       amount: new Prisma.Decimal(total),
+      tax: new Prisma.Decimal(taxNum),
       currency,
       invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
       dueDate: dueDate ? new Date(dueDate) : new Date(),

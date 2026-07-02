@@ -161,3 +161,32 @@ Registro cronológico de decisiones y trabajo, para luego volcarlo al README / e
   con `Bill.amount = 1240.50` = suma (fila de prueba borrada, bills en 6). Pendiente: e2e visual por UI.
 - Archivado → `archive/2026-07-02-add-line-items-form`; specs: `bill-line-items` creado (+3),
   `bill-draft-persistence` actualizado (~1 MODIFIED). No quedan changes activos.
+
+### OpenSpec change: `add-bill-tax` (propuesto + implementado + archivado)
+- Motivación: las facturas separan **subtotal + impuestos**; el `Bill` no tenía campo `tax`, así que el
+  extractor metía el IVA/tax como un line item más (ensuciaba la lista y rompía el subtotal).
+- Decisión (Opción A): `Bill.amount` **sigue siendo el total** que se paga; se agrega `tax Decimal(12,2)
+  @default(0)`. Invariante `amount = Σ line items + tax`. El **subtotal es derivado**, nunca se guarda
+  (consistente con "overdue is derived, never stored"). Se descartó la Opción B (`amount` = subtotal) y
+  un `LineItemType.TAX` (re-contaminaría el subtotal).
+- Migración `20260702171513_bill_tax` (aditiva, default 0 backfillea filas viejas) + client regenerado.
+- Seed: helper `lineItems(items, taxRate)` → `amount = subtotal + tax`; Figma (FIG-2043) y AWS (AWS-2042)
+  con 8.5% de tax; el resto tax=0. Verificado que las 6 bills cumplen `amount = subtotal + tax`.
+- Extracción AI: `bill.tax: number|null` en el Zod schema; prompt actualizado para **sumar todas las
+  líneas de impuesto** (VAT/GST/sales tax/surcharge) en un solo `tax`, sacarlas de `lineItems`, y dejar
+  shipping/descuentos como items.
+- Store `stores/bill-draft.ts`: `tax` como campo del `form` (lo cubre `setField`, sin `setTax` aparte);
+  helpers `subtotal(items)` e `invoiceTotal(items, tax) = subtotal + tax`.
+- `bill-form.tsx`: desglose **Subtotal / Tax (editable) / Invoice total** en vez del total único;
+  "details complete" pasa a basarse en `subtotal > 0`.
+- `actions.ts`: `saveDraft` lee `tax` de FormData, setea `Bill.tax` y `Bill.amount = subtotal + tax`.
+- Verificación real:
+  - `tsc --noEmit` limpio.
+  - `/api/extract` con un PDF de prueba (VAT $154 + surcharge $20 + shipping $40) → devolvió `tax: 174`
+    (sumó ambos impuestos), shipping quedó como item, ni VAT ni surcharge en `lineItems`; total 1540+174
+    = 1714 = "Total due" de la factura. ✓
+  - Persistencia replicada con tsx contra la DB real: `amount 1714`, `tax 174`, subtotal 1540, invariante
+    OK; fila de prueba borrada, bills vuelven a 6. ✓
+- Archivado → `archive/2026-07-02-add-bill-tax`; specs sincronizados vía `openspec archive`: `bill-tax`
+  creado (+2), `billpay-data-model` / `ai-bill-extraction` / `bill-draft-persistence` actualizados
+  (~3 MODIFIED). `openspec validate --all` → 7 passed, 0 failed. No quedan changes activos.

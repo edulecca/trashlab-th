@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, Plus, Trash2 } from "lucide-react";
-import { Badge, Button, cn } from "ui-system";
+import { Badge, Button, Input, Textarea } from "ui-system";
 
 import {
   useBillDraft,
@@ -20,26 +20,6 @@ function SectionBadge({ complete }: { complete: boolean }) {
     <Badge variant="secondary">Missing info</Badge>
   );
 }
-
-function Field({
-  label,
-  children,
-  className,
-}: {
-  label: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <label className={cn("flex flex-col gap-1.5", className)}>
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-const inputClass =
-  "h-10 w-full rounded-md border bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40";
 
 /** Currency formatter that tolerates an empty/invalid code. */
 function money(amount: number, currency: string) {
@@ -144,22 +124,19 @@ export function BillForm() {
             <SectionBadge complete={vendorComplete} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Vendor name">
-              <input
-                className={inputClass}
-                value={form.vendorName}
-                onChange={set("vendorName")}
-                placeholder="Acme Inc."
-              />
-            </Field>
-            <Field label="Vendor email">
-              <input
-                className={inputClass}
-                value={form.vendorEmail}
-                onChange={set("vendorEmail")}
-                placeholder="billing@acme.com"
-              />
-            </Field>
+            <Input
+              label="Vendor name"
+              value={form.vendorName}
+              onChange={set("vendorName")}
+              placeholder="Acme Inc."
+            />
+            <Input
+              label="Vendor email"
+              type="email"
+              value={form.vendorEmail}
+              onChange={set("vendorEmail")}
+              placeholder="billing@acme.com"
+            />
           </div>
         </section>
 
@@ -169,47 +146,40 @@ export function BillForm() {
             <SectionBadge complete={detailsComplete} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Invoice #">
-              <input
-                className={inputClass}
-                value={form.number}
-                onChange={set("number")}
-                placeholder="INV-0001"
-              />
-            </Field>
-            <Field label="Currency">
-              <input
-                className={cn(inputClass, "uppercase")}
-                value={form.currency}
-                onChange={set("currency")}
-                placeholder="USD"
-                maxLength={3}
-              />
-            </Field>
-            <Field label="Invoice date">
-              <input
-                type="date"
-                className={inputClass}
-                value={form.invoiceDate}
-                onChange={set("invoiceDate")}
-              />
-            </Field>
-            <Field label="Due date">
-              <input
-                type="date"
-                className={inputClass}
-                value={form.dueDate}
-                onChange={set("dueDate")}
-              />
-            </Field>
-            <Field label="Description" className="sm:col-span-2">
-              <textarea
-                className={cn(inputClass, "h-24 resize-none py-2")}
-                value={form.description}
-                onChange={set("description")}
-                placeholder="What is this bill for?"
-              />
-            </Field>
+            <Input
+              label="Invoice #"
+              value={form.number}
+              onChange={set("number")}
+              placeholder="INV-0001"
+            />
+            <Input
+              label="Currency"
+              className="uppercase"
+              value={form.currency}
+              onChange={set("currency")}
+              placeholder="USD"
+              maxLength={3}
+            />
+            <Input
+              label="Invoice date"
+              type="date"
+              value={form.invoiceDate}
+              onChange={set("invoiceDate")}
+            />
+            <Input
+              label="Due date"
+              type="date"
+              value={form.dueDate}
+              onChange={set("dueDate")}
+            />
+            <Textarea
+              label="Description"
+              containerClassName="sm:col-span-2"
+              rows={3}
+              value={form.description}
+              onChange={set("description")}
+              placeholder="What is this bill for?"
+            />
           </div>
         </section>
 
@@ -217,18 +187,28 @@ export function BillForm() {
         <section className="space-y-4">
           <h2 className="text-lg font-semibold">Line items</h2>
 
-          <div className="space-y-2">
+          {/* Square, table-style block: header + one editable row per item. */}
+          <div className="rounded-none border border-input">
+            <div className="flex items-center gap-2 border-b border-input bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
+              <span className="flex-1">Description</span>
+              <span className="w-36 text-right">Price</span>
+              <span className="size-8 shrink-0" aria-hidden="true" />
+            </div>
+
             {lineItems.map((item, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input
-                  className={cn(inputClass, "flex-1")}
+              <div
+                key={i}
+                className="flex items-center gap-2 border-b border-input px-3 last:border-b-0"
+              >
+                <Input
+                  className="h-12 flex-1 rounded-none border-0 bg-transparent px-0 text-base focus-visible:border-0 focus-visible:ring-0"
                   value={item.description}
                   onChange={setItem(i, "description")}
                   placeholder="Description"
                   aria-label={`Line item ${i + 1} description`}
                 />
-                <input
-                  className={cn(inputClass, "w-36 tabular-nums")}
+                <Input
+                  className="h-12 w-36 rounded-none border-0 bg-transparent px-0 text-right text-base tabular-nums focus-visible:border-0 focus-visible:ring-0"
                   value={item.amount}
                   onChange={setItem(i, "amount")}
                   inputMode="decimal"
@@ -242,24 +222,25 @@ export function BillForm() {
                     setSaved(false);
                   }}
                   aria-label={`Remove line item ${i + 1}`}
-                  className="grid size-10 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   <Trash2 className="size-4" />
                 </button>
               </div>
             ))}
-          </div>
 
-          <Button
-            variant="ghost"
-            onClick={() => {
-              addLineItem();
-              setSaved(false);
-            }}
-          >
-            <Plus data-icon="inline-start" />
-            Add line item
-          </Button>
+            <button
+              type="button"
+              onClick={() => {
+                addLineItem();
+                setSaved(false);
+              }}
+              className="flex w-full items-center gap-1.5 border-t border-input px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Plus className="size-4" />
+              Add line item
+            </button>
+          </div>
 
           {/* Totals breakdown: subtotal (Σ items) + tax = invoice total */}
           <div className="ml-auto w-full max-w-xs space-y-2 border-t pt-4">
@@ -270,15 +251,12 @@ export function BillForm() {
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <label
-                htmlFor="bill-tax"
-                className="text-muted-foreground"
-              >
+              <label htmlFor="bill-tax" className="text-muted-foreground">
                 Tax
               </label>
-              <input
+              <Input
                 id="bill-tax"
-                className={cn(inputClass, "h-9 w-28 text-right tabular-nums")}
+                className="w-28 text-right tabular-nums"
                 value={form.tax}
                 onChange={set("tax")}
                 inputMode="decimal"

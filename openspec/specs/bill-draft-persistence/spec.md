@@ -7,7 +7,9 @@ TBD - created by archiving change add-bill-draft-persistence. Update Purpose aft
 
 The system SHALL persist a reviewed bill draft as a `Bill` row with `status = DRAFT` when the user
 saves. The bill SHALL be linked to a vendor and attributed to a user, and SHALL record the reviewed
-form's amount, currency, dates, invoice number, and description.
+form's currency, dates, invoice number, and description. The reviewed **line items** SHALL be persisted
+as one `BillLineItem` row per non-empty line item, and `Bill.amount` SHALL equal the sum of the line
+items' prices.
 
 #### Scenario: Draft saved
 
@@ -18,6 +20,11 @@ form's amount, currency, dates, invoice number, and description.
 
 - **WHEN** the reviewed vendor name matches an existing `Vendor`
 - **THEN** the bill links to that vendor; otherwise a new `Vendor` is created from the reviewed name/email
+
+#### Scenario: Line items persisted
+
+- **WHEN** the reviewed draft has line items
+- **THEN** one `BillLineItem` row is created per non-empty item (description + price), and `Bill.amount` equals their sum
 
 ### Requirement: Persist the uploaded PDF blob on save
 

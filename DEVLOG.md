@@ -143,3 +143,21 @@ Registro cronológico de decisiones y trabajo, para luego volcarlo al README / e
   `openspec/specs/bill-draft-persistence/spec.md` (+2 requisitos). Archivado con la task **3.3 (e2e por
   UI) pendiente** — hacerla cuando la extensión de Chrome esté conectada.
 - No quedan changes activos.
+
+### OpenSpec change: `add-line-items-form` (propuesto + implementado)
+- Feature: reemplazar el campo único "Amount" del form por una **lista editable de line items**
+  (description + precio por fila), botón **"Add line item"**, e **"Invoice total"** calculado (estilo Ramp).
+  Por item solo description + precio (sin los campos extra de Ramp: GL/category/department/class/billable).
+- Store `stores/bill-draft.ts`: pasa a tener `lineItems: {description, amount}[]` (se saca el `amount` único),
+  mapea la extracción real a filas, actions `setLineItem/addLineItem/removeLineItem`, y `invoiceTotal()`
+  derivado (sum de `parseFloat`, NaN→0).
+- `bill-form.tsx`: sección "Line items" con filas (description + price + botón borrar), "Add line item",
+  e "Invoice total" read-only; `currency` movido a su propio campo en "Bill details".
+- `actions.ts`: `saveDraft` recibe el array (JSON en FormData), crea **1 `BillLineItem` por fila no vacía**
+  (quantity 1, unitPrice=total=precio, type EXPENSE, order=index) y `Bill.amount` = suma.
+- Specs: nueva capability `bill-line-items` + MODIFIED de `bill-draft-persistence` (persistir el array real
+  en vez de 1 item sintético).
+- Verificado: `tsc` limpio; `/api/extract` devuelve el array de line items; replica tsx persistió 2 items
+  con `Bill.amount = 1240.50` = suma (fila de prueba borrada, bills en 6). Pendiente: e2e visual por UI.
+- Archivado → `archive/2026-07-02-add-line-items-form`; specs: `bill-line-items` creado (+3),
+  `bill-draft-persistence` actualizado (~1 MODIFIED). No quedan changes activos.

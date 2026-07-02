@@ -2,8 +2,8 @@
  * Client-side draft store for the create-bill flow.
  *
  * Holds the form fields (pre-filled from AI extraction, then user-editable), the
- * uploaded file, and the extraction status. Extraction never writes to the DB —
- * persistence happens when the user submits the form (existing create-bill flow).
+ * editable line items, the uploaded file, and the extraction status. Extraction
+ * never writes to the DB — persistence happens when the user saves the draft.
  */
 "use client";
 
@@ -13,51 +13,71 @@ import type { ExtractionData } from "@/lib/ai/schema";
 
 export type DraftStatus = "idle" | "extracting" | "ready" | "error";
 
-/** Flat, input-friendly shape the form binds to. */
+/** A single editable line item. Price is a string to keep the input controlled. */
+export type DraftLineItem = { description: string; amount: string };
+
+/** Header/vendor fields the form binds to. Amounts live in `lineItems`. */
 export type DraftForm = {
   vendorName: string;
   vendorEmail: string;
   number: string;
   invoiceDate: string; // yyyy-mm-dd
   dueDate: string; // yyyy-mm-dd
-  amount: string;
   currency: string;
   description: string;
 };
 
-const EMPTY: DraftForm = {
+const EMPTY_FORM: DraftForm = {
   vendorName: "",
   vendorEmail: "",
   number: "",
   invoiceDate: "",
   dueDate: "",
-  amount: "",
   currency: "",
   description: "",
 };
 
-/** Map the extractor's nested output onto the flat form shape. */
-function fromExtraction(data: ExtractionData): DraftForm {
-  const total = data.bill.lineItems.reduce((sum, it) => sum + it.amount, 0);
+const EMPTY_ITEM: DraftLineItem = { description: "", amount: "" };
+
+function formFromExtraction(data: ExtractionData): DraftForm {
   return {
     vendorName: data.vendor.name ?? "",
     vendorEmail: data.vendor.email ?? "",
     number: data.bill.invoiceNumber ?? "",
     invoiceDate: data.bill.invoiceDate ?? "",
     dueDate: data.bill.dueDate ?? "",
-    amount: total > 0 ? total.toFixed(2) : "",
     currency: data.bill.currency ?? "",
     description: data.bill.description ?? "",
   };
 }
 
+function itemsFromExtraction(data: ExtractionData): DraftLineItem[] {
+  const items = data.bill.lineItems.map((it) => ({
+    description: it.description,
+    amount: String(it.amount),
+  }));
+  return items.length > 0 ? items : [{ ...EMPTY_ITEM }];
+}
+
+/** Sum of line-item prices; non-numeric prices contribute 0. */
+export function invoiceTotal(items: DraftLineItem[]): number {
+  return items.reduce((sum, it) => {
+    const n = parseFloat(it.amount);
+    return sum + (Number.isNaN(n) ? 0 : n);
+  }, 0);
+}
+
 type BillDraftState = {
   form: DraftForm;
+  lineItems: DraftLineItem[];
   status: DraftStatus;
   error: string | null;
   file: File | null;
 
   setField: (key: keyof DraftForm, value: string) => void;
+  setLineItem: (index: number, key: keyof DraftLineItem, value: string) => void;
+  addLineItem: () => void;
+  removeLineItem: (index: number) => void;
   setFile: (file: File | null) => void;
   setStatus: (status: DraftStatus) => void;
   setError: (message: string | null) => void;
@@ -66,17 +86,42 @@ type BillDraftState = {
 };
 
 export const useBillDraft = create<BillDraftState>((set) => ({
-  form: EMPTY,
+  form: EMPTY_FORM,
+  lineItems: [{ ...EMPTY_ITEM }],
   status: "idle",
   error: null,
   file: null,
 
-  setField: (key, value) =>
-    set((s) => ({ form: { ...s.form, [key]: value } })),
+  setField: (key, value) => set((s) => ({ form: { ...s.form, [key]: value } })),
+  setLineItem: (index, key, value) =>
+    set((s) => ({
+      lineItems: s.lineItems.map((it, i) =>
+        i === index ? { ...it, [key]: value } : it
+      ),
+    })),
+  addLineItem: () =>
+    set((s) => ({ lineItems: [...s.lineItems, { ...EMPTY_ITEM }] })),
+  removeLineItem: (index) =>
+    set((s) => {
+      const next = s.lineItems.filter((_, i) => i !== index);
+      return { lineItems: next.length > 0 ? next : [{ ...EMPTY_ITEM }] };
+    }),
   setFile: (file) => set({ file }),
   setStatus: (status) => set({ status }),
   setError: (message) => set({ error: message }),
   loadExtraction: (data) =>
-    set({ form: fromExtraction(data), status: "ready", error: null }),
-  reset: () => set({ form: EMPTY, status: "idle", error: null, file: null }),
+    set({
+      form: formFromExtraction(data),
+      lineItems: itemsFromExtraction(data),
+      status: "ready",
+      error: null,
+    }),
+  reset: () =>
+    set({
+      form: EMPTY_FORM,
+      lineItems: [{ ...EMPTY_ITEM }],
+      status: "idle",
+      error: null,
+      file: null,
+    }),
 }));

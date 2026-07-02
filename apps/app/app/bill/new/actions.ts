@@ -16,11 +16,28 @@ export async function saveDraft(fd: FormData) {
   const vendorName = get("vendorName");
   const vendorEmail = get("vendorEmail");
   const number = get("number");
-  const amount = get("amount");
   const currency = get("currency") || "USD";
   const invoiceDate = get("invoiceDate");
   const dueDate = get("dueDate");
   const description = get("description");
+
+  // Reviewed line items (JSON array of { description, amount }). Drop empty rows.
+  type RawItem = { description?: string; amount?: string };
+  let rawItems: RawItem[] = [];
+  try {
+    rawItems = JSON.parse(get("lineItems") || "[]");
+  } catch {
+    rawItems = [];
+  }
+  const items = rawItems
+    .map((it) => ({
+      description: (it.description ?? "").trim(),
+      price: parseFloat(it.amount ?? ""),
+    }))
+    .map((it) => ({ ...it, price: Number.isNaN(it.price) ? 0 : it.price }))
+    .filter((it) => it.description !== "" || it.price !== 0);
+
+  const total = items.reduce((sum, it) => sum + it.price, 0);
 
   const file = fd.get("file");
   const bytes =
@@ -43,14 +60,12 @@ export async function saveDraft(fd: FormData) {
     });
   }
 
-  const amountDec = new Prisma.Decimal(amount || 0);
-
   const bill = await prisma.bill.create({
     data: {
       number: number || "DRAFT",
       status: "DRAFT",
       source: bytes ? "OCR" : "MANUAL",
-      amount: amountDec,
+      amount: new Prisma.Decimal(total),
       currency,
       invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
       dueDate: dueDate ? new Date(dueDate) : new Date(),
@@ -58,17 +73,19 @@ export async function saveDraft(fd: FormData) {
       memo: description || null,
       vendorId: vendor.id,
       uploadedById: user.id,
+      // One BillLineItem per reviewed row; quantity flattened to 1 for the MVP.
       lineItems: {
-        create: [
-          {
-            description: description || number || "Invoice",
+        create: items.map((it, order) => {
+          const price = new Prisma.Decimal(it.price);
+          return {
+            description: it.description || "Item",
             quantity: new Prisma.Decimal(1),
-            unitPrice: amountDec,
-            total: amountDec,
-            type: "EXPENSE",
-            order: 0,
-          },
-        ],
+            unitPrice: price,
+            total: price,
+            type: "EXPENSE" as const,
+            order,
+          };
+        }),
       },
     },
   });

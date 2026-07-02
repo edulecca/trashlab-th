@@ -87,7 +87,9 @@ export function DocumentPreview() {
         {url ? (
           <div className="relative h-full">
             <iframe
-              src={url}
+              // #navpanes=0 hides the native viewer's page-thumbnail sidebar;
+              // view=FitH fits the page to the panel width.
+              src={`${url}#navpanes=0&view=FitH`}
               title={file?.name ?? "Invoice preview"}
               className="h-full w-full rounded-lg border bg-background"
             />

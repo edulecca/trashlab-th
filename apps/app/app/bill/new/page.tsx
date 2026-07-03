@@ -1,10 +1,10 @@
+import { BillsRail } from "@/components/bills-rail";
+import { ResizableColumns } from "@/components/resizable-columns";
 import { toBillRow } from "@/lib/bill-row";
 import { prisma } from "@/lib/prisma";
 
 import { BillForm } from "./_components/form/bill-form";
-import { BillsRail } from "./_components/bills-rail";
 import { DocumentPreview } from "./_components/document-preview";
-import { ResizableColumns } from "./_components/resizable-columns";
 
 export const dynamic = "force-dynamic";
 

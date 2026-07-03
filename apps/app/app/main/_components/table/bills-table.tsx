@@ -1,10 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { DataTable } from "ui-system";
 
 import type { BillRow } from "@/lib/bill-row";
 import { categoryRank, CATEGORY_META, STATUS_TO_CATEGORY } from "@/lib/bill-status";
-import { matchesBillSearch } from "@/lib/bills";
+import { billHref, matchesBillSearch } from "@/lib/bills";
 import { useBillsView } from "@/stores/bills-view";
 import { ACTION_COLUMN, COLUMN_DEFS } from "./columns";
 
@@ -26,6 +27,7 @@ export function BillsTable({
   /** Show skeleton rows while the bills are loading. */
   loading?: boolean;
 }) {
+  const router = useRouter();
   const search = useBillsView((s) => s.search);
   const columnVisibility = useBillsView((s) => s.columnVisibility);
   const columnOrder = useBillsView((s) => s.columnOrder);
@@ -55,6 +57,7 @@ export function BillsTable({
         selectable
         loading={loading}
         groupBy={grouped ? billCategory : undefined}
+        onRowClick={(row) => router.push(billHref(row.id, row.status))}
       />
     </div>
   );

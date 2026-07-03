@@ -51,6 +51,8 @@ interface DataTableProps<TData, TValue> {
   loading?: boolean
   /** How many skeleton rows to show while `loading` (default 5). */
   loadingRows?: number
+  /** Click handler for a data row; makes rows clickable (interactive cells opt out). */
+  onRowClick?: (row: TData) => void
 }
 
 function DataTable<TData, TValue>({
@@ -60,6 +62,7 @@ function DataTable<TData, TValue>({
   groupBy,
   loading = false,
   loadingRows = 5,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
@@ -134,11 +137,19 @@ function DataTable<TData, TValue>({
     <TableRow
       key={row.id}
       data-state={row.getIsSelected() ? "selected" : undefined}
+      onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+      className={cn(onRowClick && "cursor-pointer")}
     >
       {row.getVisibleCells().map((cell) => (
         <TableCell
           key={cell.id}
           className={cn(cell.column.columnDef.meta?.className)}
+          // The selection checkbox must not trigger row navigation.
+          onClick={
+            cell.column.id === "select"
+              ? (e) => e.stopPropagation()
+              : undefined
+          }
         >
           {flexRender(cell.column.columnDef.cell, cell.getContext())}
         </TableCell>

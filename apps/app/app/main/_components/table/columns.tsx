@@ -80,7 +80,10 @@ export const ACTION_COLUMN: ColumnDef<BillRow> = {
       <div className="flex justify-center">
         <Button
           size="md"
-          onClick={() => console.log("[bill] pay", row.original.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            console.log("[bill] pay", row.original.id);
+          }}
         >
           Pay Bill
         </Button>

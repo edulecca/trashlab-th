@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ListItem, SearchField } from "ui-system";
 
 import { VendorAvatar } from "@/components/vendor-avatar";
@@ -10,12 +11,13 @@ import {
   CATEGORY_ORDER,
   STATUS_TO_CATEGORY,
 } from "@/lib/bill-status";
-import { matchesBillSearch } from "@/lib/bills";
+import { billHref, matchesBillSearch } from "@/lib/bills";
 import { formatDate, money } from "@/lib/format";
 
 /**
- * Left rail of the new-bill screen: a borderless search over a bill list grouped
- * into the same lifecycle sections as the main table (Ready for review, etc.).
+ * Shared bill list rail (new-bill + view screens): a borderless search over a
+ * bill list grouped into the same lifecycle sections as the main table. Each
+ * item links to the bill (draft → create flow, otherwise → read-only view).
  */
 export function BillsRail({ rows }: { rows: BillRow[] }) {
   const [query, setQuery] = useState("");
@@ -56,17 +58,19 @@ export function BillsRail({ rows }: { rows: BillRow[] }) {
                   {group.bills.length}
                 </span>
               </div>
-              <ul className="px-2">
+              <ul>
                 {group.bills.map((b) => (
                   <li key={b.id}>
-                    <ListItem
-                      className="rounded-lg hover:bg-muted"
-                      leftAccessory={
-                        <VendorAvatar name={b.vendor} img={b.vendorImg} />
-                      }
-                      title={b.vendor}
-                      subtitle={`${money(b.amount, b.currency)} · Due ${formatDate(b.dueDate)}`}
-                    />
+                    <Link href={billHref(b.id, b.status)} className="block">
+                      <ListItem
+                        className="hover:bg-muted"
+                        leftAccessory={
+                          <VendorAvatar name={b.vendor} img={b.vendorImg} />
+                        }
+                        title={b.vendor}
+                        subtitle={`${money(b.amount, b.currency)} · Due ${formatDate(b.dueDate)}`}
+                      />
+                    </Link>
                   </li>
                 ))}
               </ul>

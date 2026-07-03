@@ -1,28 +1,32 @@
-"use client";
-
+import type { ChangeEvent } from "react";
 import { Input } from "ui-system";
 
 import { money } from "@/lib/format";
-import {
-  invoiceTotal,
-  subtotal as sumItems,
-  useBillDraft,
-} from "@/stores/bill-draft";
+import { invoiceTotal, subtotal as sumItems } from "@/lib/line-items";
+import type { DraftLineItem } from "@/stores/bill-draft";
 
-/** Totals breakdown: subtotal (Σ items) + editable tax = invoice total. */
-export function TotalsSummary() {
-  const form = useBillDraft((s) => s.form);
-  const setField = useBillDraft((s) => s.setField);
-  const lineItems = useBillDraft((s) => s.lineItems);
-
+/** Totals breakdown: subtotal (Σ items) + tax = invoice total. Tax editable unless disabled. */
+export function TotalsSummary({
+  lineItems,
+  tax,
+  currency,
+  disabled = false,
+  onTaxChange,
+}: {
+  lineItems: DraftLineItem[];
+  tax: string;
+  currency: string;
+  disabled?: boolean;
+  onTaxChange?: (value: string) => void;
+}) {
   const subtotal = sumItems(lineItems);
-  const total = invoiceTotal(lineItems, form.tax);
+  const total = invoiceTotal(lineItems, tax);
 
   return (
     <div className="ml-auto w-full max-w-xs space-y-2 border-t pt-4">
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">Subtotal</span>
-        <span className="tabular-nums">{money(subtotal, form.currency)}</span>
+        <span className="tabular-nums">{money(subtotal, currency)}</span>
       </div>
       <div className="flex items-center justify-between text-sm">
         <label htmlFor="bill-tax" className="text-muted-foreground">
@@ -30,12 +34,18 @@ export function TotalsSummary() {
         </label>
         <Input
           id="bill-tax"
-          className="w-28 text-right tabular-nums"
-          value={form.tax}
-          onChange={(e) => setField("tax", e.target.value)}
+          className="w-28 text-right tabular-nums disabled:border-transparent disabled:bg-transparent disabled:px-0 disabled:opacity-100"
+          value={tax}
+          onChange={
+            disabled
+              ? undefined
+              : (e: ChangeEvent<HTMLInputElement>) =>
+                  onTaxChange?.(e.target.value)
+          }
           inputMode="decimal"
           placeholder="0.00"
           aria-label="Tax amount"
+          disabled={disabled}
         />
       </div>
       <div className="flex items-center justify-between border-t pt-2">
@@ -43,7 +53,7 @@ export function TotalsSummary() {
           Invoice total
         </span>
         <span className="text-2xl font-semibold tabular-nums">
-          {money(total, form.currency)}
+          {money(total, currency)}
         </span>
       </div>
     </div>

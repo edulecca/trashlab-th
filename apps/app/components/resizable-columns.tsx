@@ -1,16 +1,19 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
+  usePanelRef,
 } from "ui-system";
 
+import { useRailToggle } from "./rail-toggle";
+
 /**
- * Three-column shell for the bill creation screen, built on the shadcn/radix
- * Resizable (react-resizable-panels). Each column is a draggable panel; the
- * right (document preview) and left (bill list) borders resize against the
- * center form via the grip handles.
+ * Three-column shell for the bill screens, built on react-resizable-panels. Each
+ * column is a draggable panel. The left rail is collapsible: the top-bar toggle
+ * drives it via `useRailToggle`, and dragging it shut syncs the toggle back.
  */
 export function ResizableColumns({
   left,
@@ -21,6 +24,17 @@ export function ResizableColumns({
   right: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { collapsed, setCollapsed, setRailSize } = useRailToggle();
+  const leftPanel = usePanelRef();
+
+  // Reflect the toggle onto the panel (collapse/expand imperatively).
+  useEffect(() => {
+    const panel = leftPanel.current;
+    if (!panel) return;
+    if (collapsed && !panel.isCollapsed()) panel.collapse();
+    else if (!collapsed && panel.isCollapsed()) panel.expand();
+  }, [collapsed, leftPanel]);
+
   return (
     <ResizablePanelGroup
       orientation="horizontal"
@@ -29,12 +43,20 @@ export function ResizableColumns({
       defaultLayout={{ left: 22, center: 46, right: 32 }}
       className="min-h-0 flex-1"
     >
-      {/* Left — bill list rail */}
+      {/* Left — bill list rail (collapsible) */}
       <ResizablePanel
         id="left"
+        panelRef={leftPanel}
+        collapsible
+        collapsedSize={0}
         defaultSize="22%"
         minSize="15%"
         maxSize="32%"
+        // Keep the toggle + top-bar divider in sync with the rail's live width.
+        onResize={(size) => {
+          setCollapsed(size.asPercentage < 1);
+          setRailSize(size.asPercentage);
+        }}
         className="flex h-full flex-col border-r bg-background"
       >
         {left}

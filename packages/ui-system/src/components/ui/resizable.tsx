@@ -45,4 +45,13 @@ function ResizableHandle({
   )
 }
 
-export { ResizableHandle, ResizablePanel, ResizablePanelGroup }
+const usePanelRef = ResizablePrimitive.usePanelRef
+type PanelImperativeHandle = ResizablePrimitive.PanelImperativeHandle
+
+export {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+  usePanelRef,
+  type PanelImperativeHandle,
+}

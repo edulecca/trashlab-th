@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FileText, Loader2, RefreshCw, Upload } from "lucide-react";
-import { Button } from "ui-system";
+import { Button, toast } from "ui-system";
 
 import { useBillDraft } from "@/stores/bill-draft";
 import type { ExtractResult } from "@/lib/ai/schema";
@@ -45,13 +45,16 @@ export function DocumentPreview() {
       const result = (await res.json()) as ExtractResult;
       if (result.ok) {
         loadExtraction(result.data);
+        toast.success("Invoice read — form pre-filled from the PDF.");
       } else {
         setStatus("error");
         setError(result.error.message);
+        toast.error(result.error.message);
       }
     } catch {
       setStatus("error");
       setError("Upload failed. Check your connection and try again.");
+      toast.error("Upload failed. Check your connection and try again.");
     }
   }
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { Badge } from "ui-system";
 
+import { useBillTopbar } from "@/app/bill/_components/bill-topbar";
 import { useBillDraft, type DraftForm } from "@/stores/bill-draft";
 import { saveDraft } from "../../actions";
 import { DetailsSection } from "./details-section";
@@ -13,12 +14,16 @@ import { TotalsSummary } from "./totals-summary";
 import { VendorSection } from "./vendor-section";
 
 /**
- * Create-bill form. Composes the section components (each bound to the draft
- * store) and owns the save/create orchestration + the transient save status.
+ * Create-bill form. Wires the draft store into the (presentational) section
+ * components and owns the save/create orchestration + transient save status.
  */
 export function BillForm() {
   const form = useBillDraft((s) => s.form);
   const lineItems = useBillDraft((s) => s.lineItems);
+  const setField = useBillDraft((s) => s.setField);
+  const setLineItem = useBillDraft((s) => s.setLineItem);
+  const addLineItem = useBillDraft((s) => s.addLineItem);
+  const removeLineItem = useBillDraft((s) => s.removeLineItem);
   const status = useBillDraft((s) => s.status);
   const error = useBillDraft((s) => s.error);
   const file = useBillDraft((s) => s.file);
@@ -31,6 +36,14 @@ export function BillForm() {
   useEffect(() => {
     setSaved(false);
   }, [form, lineItems]);
+
+  // Publish the draft's context into the shared /bill top bar.
+  useBillTopbar({
+    vendorName: form.vendorName,
+    vendorImg: null,
+    number: form.number,
+    statusLabel: "Draft",
+  });
 
   const title =
     form.vendorName && form.number
@@ -81,12 +94,22 @@ export function BillForm() {
 
       {/* Scrollable body */}
       <div className="min-h-0 flex-1 space-y-8 overflow-auto px-8 py-8">
-        <VendorSection />
-        <DetailsSection />
+        <VendorSection form={form} onChange={setField} />
+        <DetailsSection form={form} lineItems={lineItems} onChange={setField} />
         <section className="space-y-4">
           <h2 className="text-lg font-semibold">Line items</h2>
-          <LineItemsEditor />
-          <TotalsSummary />
+          <LineItemsEditor
+            lineItems={lineItems}
+            onItemChange={setLineItem}
+            onAdd={addLineItem}
+            onRemove={removeLineItem}
+          />
+          <TotalsSummary
+            lineItems={lineItems}
+            tax={form.tax}
+            currency={form.currency}
+            onTaxChange={(value) => setField("tax", value)}
+          />
         </section>
       </div>
 

@@ -93,6 +93,24 @@ On upload, two kinds of errors can surface:
 1. the document isn't considered a **valid bill**;
 2. it's detected as a **duplicate bill** — surfaced with a badge/banner.
 
+## Out of scope (deliberate)
+
+- **Mobile** — left out on purpose. Handling this much data-dense visualization is genuinely
+  complex on mobile (it's typically a desktop/web experience), so I focused on the web view.
+  It still renders on mobile, but the flows would need rethinking for a real mobile version.
+- **Bulk ingestion** — no multi-PDF or Excel/CSV upload. It's an MVP and I wanted to show
+  the core flow — **upload → ingest → recognize** — so bulk was set aside.
+- **More complex table filters** — the toolbar leaves a few **inert placeholders** on
+  purpose: with proper state management the table could keep gaining filters/data the same
+  way, but I didn't build them out.
+- **Payment flows** — the concrete payment logic is left out. I wanted to show a normal
+  bill-advancement flow (draft → … → paid); the real payment flows and their business rules
+  would go deeper than the MVP needs.
+- **Auth** — no authentication. To keep it MVP there's just a **single user**; the server
+  actions attribute everything to that one user. No login, roles, or multi-tenant.
+- **File storage** — PDFs aren't uploaded to external object storage (e.g. **S3**); they're
+  stored in the DB as **blobs** (`Bytes` / BYTEA). Fine for the MVP, wouldn't scale.
+
 ## How it was built
 
 I leaned on **Claude Code** (with **Wispr Flow** for dictation) throughout. For the very

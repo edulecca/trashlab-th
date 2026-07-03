@@ -18,6 +18,7 @@ datasource db {
 enum BillStatus {
   DRAFT
   NEEDS_REVIEW
+  REVIEWED
   APPROVED
   SCHEDULED
   PAID

@@ -4,27 +4,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Badge, Button, DataTable } from "ui-system";
 
+import type { BillRow } from "@/lib/bill-row";
 import { VendorElementRow } from "./vendor-element-row";
 
-export type BillRow = {
-  id: string;
-  number: string;
-  vendor: string;
-  vendorImg: string | null;
-  uploadedBy: string;
-  uploadedAt: string;
-  status:
-    | "DRAFT"
-    | "NEEDS_REVIEW"
-    | "APPROVED"
-    | "SCHEDULED"
-    | "PAID"
-    | "FAILED";
-  overdue: boolean;
-  amount: number;
-  currency: string;
-  dueDate: string;
-};
+export type { BillRow };
 
 const STATUS: Record<
   BillRow["status"],
@@ -32,6 +15,7 @@ const STATUS: Record<
 > = {
   DRAFT: { label: "Draft", variant: "secondary" },
   NEEDS_REVIEW: { label: "Needs review", variant: "warning" },
+  REVIEWED: { label: "Reviewed", variant: "outline" },
   APPROVED: { label: "Approved", variant: "secondary" },
   SCHEDULED: { label: "Scheduled", variant: "outline" },
   PAID: { label: "Paid", variant: "success" },

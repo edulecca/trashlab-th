@@ -146,6 +146,27 @@ async function main() {
     },
   });
 
+  // REVIEWED — reviewed, waiting for approval (no approver yet).
+  const reviewedItems = lineItems([
+    { description: "Vercel Pro — 8 seats", quantity: 8, unitPrice: 20, type: "EXPENSE", category: "Software" },
+  ]);
+  await prisma.bill.create({
+    data: {
+      number: "VER-3088",
+      status: "REVIEWED",
+      source: "EMAIL",
+      amount: reviewedItems.amount,
+      tax: reviewedItems.tax,
+      currency: "USD",
+      invoiceDate: daysFromNow(-5),
+      dueDate: daysFromNow(20),
+      file: invoicePdfB,
+      vendorId: vercel.id,
+      uploadedById: bruno.id,
+      lineItems: { create: reviewedItems.create },
+    },
+  });
+
   // APPROVED — reviewed and approved, not yet scheduled.
   const approvedItems = lineItems([
     { description: "Linear — 40 seats", quantity: 40, unitPrice: 8, type: "EXPENSE", category: "Software" },

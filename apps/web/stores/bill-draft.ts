@@ -88,6 +88,8 @@ type BillDraftState = {
   setError: (message: string | null) => void;
   setPersisted: (id: string) => void;
   loadExtraction: (data: ExtractionData) => void;
+  /** Clear the previewed doc + form data (new import) but keep the draft id. */
+  clearContent: () => void;
   reset: () => void;
 };
 
@@ -125,6 +127,15 @@ export const useBillDraft = create<BillDraftState>((set) => ({
       lineItems: itemsFromExtraction(data),
       status: "ready",
       error: null,
+    }),
+  clearContent: () =>
+    set({
+      form: EMPTY_FORM,
+      lineItems: [{ ...EMPTY_ITEM }],
+      status: "idle",
+      error: null,
+      file: null,
+      fileUrl: null,
     }),
   reset: () =>
     set({

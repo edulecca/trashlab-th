@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "ui-system";
 
 import type { BillStatus } from "@/lib/bill/row";
 import { useBills } from "@/hooks/use-bills";
+import { useSearchParam } from "@/hooks/use-search-param";
 import { useBillsView } from "@/stores/bills-view";
 import { BillsToolbar } from "./toolbar/bills-toolbar";
 import { BillsTable } from "./table/bills-table";
@@ -25,11 +25,9 @@ const TABS: TabDef[] = [
  * table fed by `useBills`. Switching a tab refetches the filtered set.
  */
 export function BillsView() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const params = useSearchParams();
-
-  const active = TABS.find((t) => t.key === params.get("tab")) ?? TABS[0];
+  // Active tab synced to `?tab=` (default Overview keeps a clean URL).
+  const [tab, setTab] = useSearchParam("tab", TABS[0].key);
+  const active = TABS.find((t) => t.key === tab) ?? TABS[0];
   const { data: rows, isLoading, isError } = useBills({ status: active.status });
 
   // Switching tabs shows a different row set — drop any lingering selection so
@@ -39,23 +37,11 @@ export function BillsView() {
     clearSelection();
   }, [active.key, clearSelection]);
 
-  function selectTab(key: string) {
-    const sp = new URLSearchParams(params);
-    if (key === TABS[0].key) sp.delete("tab");
-    else sp.set("tab", key);
-    const qs = sp.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }
-
   return (
     // Break out of the page's horizontal padding so the toolbar and table go
     // edge-to-edge (full-bleed); text inside is re-padded to align with the header.
     <div className="-mx-4 md:-mx-8">
-      <Tabs
-        value={active.key}
-        onValueChange={selectTab}
-        className="px-4 md:px-8"
-      >
+      <Tabs value={active.key} onValueChange={setTab} className="px-4 md:px-8">
         <TabsList variant="line" size="lg">
           {TABS.map((t) => (
             <TabsTrigger key={t.key} value={t.key}>

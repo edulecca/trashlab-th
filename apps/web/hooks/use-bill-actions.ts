@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "ui-system";
 
-import { approveBill, payBill } from "@/app/bill/new/actions";
+import { approveBill, deleteBills, payBill } from "@/app/bill/new/actions";
 
 /**
  * Bill lifecycle transitions as React Query mutations. Single source of truth for
@@ -50,5 +50,19 @@ export function useBillActions() {
     },
   });
 
-  return { approve, pay };
+  // Bulk soft-delete of selected DRAFT rows (the table's Options menu). The
+  // action skips non-drafts and returns how many were actually tombstoned.
+  const bulkDelete = useMutation({
+    mutationFn: (ids: string[]) => deleteBills(ids),
+    onSuccess: ({ count }) => {
+      toast.success(`Deleted ${count} draft bill${count === 1 ? "" : "s"}.`);
+      refresh();
+    },
+    onError: (err) => {
+      console.error("[bill] bulk delete failed", err);
+      toast.error("Could not delete the selected bills. Try again.");
+    },
+  });
+
+  return { approve, pay, bulkDelete };
 }

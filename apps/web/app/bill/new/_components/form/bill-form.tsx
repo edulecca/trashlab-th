@@ -35,7 +35,6 @@ export function BillForm({ bills }: { bills: BillRow[] }) {
   const addLineItem = useBillDraft((s) => s.addLineItem);
   const removeLineItem = useBillDraft((s) => s.removeLineItem);
   const status = useBillDraft((s) => s.status);
-  const error = useBillDraft((s) => s.error);
   const billId = useBillDraft((s) => s.billId);
 
   // Create-flow mutations (RQ), same pattern as the table's useBillActions.
@@ -104,12 +103,6 @@ export function BillForm({ bills }: { bills: BillRow[] }) {
             </DropdownMenu>
           ) : null}
         </div>
-        {error && status === "error" ? (
-          <div className="mt-3 flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            <AlertCircle className="size-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        ) : null}
         {duplicateOf ? (
           <div className="mt-3 flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             <AlertCircle className="size-4 shrink-0" />

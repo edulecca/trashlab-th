@@ -41,13 +41,13 @@ export async function POST(req: Request) {
   try {
     const classification = await classify(bytes);
     if (!classification.isBill) {
+      // Keep the model's reasoning server-side for debugging; the user just gets
+      // a short, fixed message.
+      console.info("[/api/extract] not a bill:", classification.reason);
       return json(
         {
           ok: false,
-          error: {
-            code: "NOT_A_BILL",
-            message: classification.reason || "The document is not an invoice.",
-          },
+          error: { code: "NOT_A_BILL", message: "This document is not a bill." },
         },
         422
       );

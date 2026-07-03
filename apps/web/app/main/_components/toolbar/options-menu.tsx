@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, FilterX, RotateCcw, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -9,10 +7,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  toast,
 } from "ui-system";
 
-import { deleteBills } from "@/app/bill/new/actions";
+import { useBillActions } from "@/hooks/use-bill-actions";
 import { useBillsView } from "@/stores/bills-view";
 
 /**
@@ -25,8 +22,7 @@ export function OptionsMenu() {
   const selectedRows = useBillsView((s) => s.selectedRows);
   const clearSelection = useBillsView((s) => s.clearSelection);
 
-  const queryClient = useQueryClient();
-  const [deleting, setDeleting] = useState(false);
+  const { bulkDelete } = useBillActions();
 
   // Only DRAFT bills are deletable (tombstoned); non-drafts in the selection are
   // ignored, so the Delete action reflects just the draft count.
@@ -35,20 +31,9 @@ export function OptionsMenu() {
     .map((r) => r.id);
   const draftCount = draftIds.length;
 
-  async function onDelete() {
+  function onDelete() {
     if (draftCount === 0) return;
-    setDeleting(true);
-    try {
-      const { count } = await deleteBills(draftIds);
-      toast.success(`Deleted ${count} draft bill${count === 1 ? "" : "s"}.`);
-      await queryClient.invalidateQueries({ queryKey: ["bills"] });
-      clearSelection();
-    } catch (err) {
-      console.error("[bill] bulk delete failed", err);
-      toast.error("Could not delete the selected bills. Try again.");
-    } finally {
-      setDeleting(false);
-    }
+    bulkDelete.mutate(draftIds, { onSuccess: () => clearSelection() });
   }
 
   return (
@@ -63,7 +48,7 @@ export function OptionsMenu() {
           <>
             <DropdownMenuItem
               variant="destructive"
-              disabled={deleting}
+              disabled={bulkDelete.isPending}
               onSelect={() => onDelete()}
             >
               <Trash2 className="size-4" />

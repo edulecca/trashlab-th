@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w app",
+    "dev": "npm run dev -w web",
     "storybook": "npm run storybook -w ui-system",
     "build-storybook": "npm run build-storybook -w ui-system"
   },

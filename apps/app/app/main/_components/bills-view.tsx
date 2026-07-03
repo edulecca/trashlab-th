@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from "ui-system";
 
 import type { BillStatus } from "@/lib/bill-row";
 import { useBills } from "@/hooks/use-bills";
+import { BillsToolbar } from "./bills-toolbar";
 import { BillsTable } from "./bills-table";
 
 type TabDef = { key: string; label: string; status: BillStatus[] };
@@ -38,8 +39,6 @@ export function BillsView() {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
 
-  const overdue = rows?.filter((r) => r.overdue).length ?? 0;
-
   return (
     <div className="space-y-4">
       <Tabs value={active.key} onValueChange={selectTab}>
@@ -52,12 +51,7 @@ export function BillsView() {
         </TabsList>
       </Tabs>
 
-      {!isLoading && !isError ? (
-        <p className="text-sm text-muted-foreground">
-          {rows?.length ?? 0} {rows?.length === 1 ? "bill" : "bills"}
-          {overdue > 0 ? ` · ${overdue} overdue` : ""}
-        </p>
-      ) : null}
+      <BillsToolbar />
 
       {isLoading ? (
         <div className="flex h-40 items-center justify-center text-muted-foreground">

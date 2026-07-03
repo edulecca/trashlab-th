@@ -228,3 +228,33 @@ Registro cronológico de decisiones y trabajo, para luego volcarlo al README / e
 - Archivado → `archive/2026-07-03-add-bills-status-tabs`; specs: `bills-api` (+2) y `bills-list-tabs` (+3)
   creados, `billpay-data-model` / `demo-seed-data` actualizados (~2 MODIFIED). `openspec validate --all`
   → 9 passed, 0 failed. No quedan changes activos.
+
+### OpenSpec change: `add-bills-table-toolbar` (propuesto + implementado + archivado)
+- Feature: toolbar estilo Ramp arriba de la tabla de `/main`, manejada por un **store Zustand de vista**.
+  Alcance: **Search + Columns + Options**. Filtros/calendar/export → placeholders inertes (change aparte).
+  Sin "Save as new view" ni persistencia (store en memoria).
+- Decisión de arquitectura (charlada con el user):
+  - **Opción B**: el store guarda data plana (`search`, `columnVisibility` map, `columnOrder` array) y
+    `BillsTable` **deriva afuera** las columnas (filtradas+ordenadas, Vendor pineado) y las filas (filtro de
+    search sobre vendor+invoice #), pasándoselas al `DataTable` **intacto**. Se descartó inyectar los modelos
+    controlados de TanStack (columnVisibility/columnOrder/globalFilter) para no acoplar el `DataTable`
+    genérico del design system.
+  - **Row selection** queda dentro del `DataTable` (concern de interacción); se lifta a un store recién
+    cuando lleguen bulk-actions. "Single source of truth" es por concern, no "todo en un store".
+- Primitivos nuevos en `ui-system` vía shadcn: `DropdownMenu` (Options) + `Popover` (Columns); `Checkbox`
+  ya existía. Deps: `@dnd-kit/{core,sortable,utilities}` para el drag-reorder de columnas.
+- Store `stores/bills-view.ts` (`useBillsView`) con config `COLUMNS` compartida (vendor `locked`);
+  actions `setSearch`/`toggleColumn`/`setColumnOrder`/`resetFilters`/`resetView`.
+- Componentes (todos scoped a `/main`, en `app/main/_components/` — se movieron ahí desde `components/` a
+  pedido del user): `bills-search.tsx` (borderless, 80px), `columns-menu.tsx` (Popover + dnd-kit sortable,
+  Vendor locked/primero), `options-menu.tsx` (Reset filters/Reset view), `bills-toolbar.tsx` (search +
+  cluster de íconos con filter/calendar/export disabled). `bills-view.tsx` renderiza la toolbar; el count
+  ("N bills · overdue") se movió a `bills-table.tsx` y cuenta las filas **filtradas**.
+- Verificación: `tsc` limpio (app + ui-system); `/main` 200 con toolbar (Search/Options/Columns) y los 3
+  placeholders `disabled` confirmados, tabs intactos; **lógica del store por tsx (16/16 asserts)**: toggle
+  hide/show, vendor locked, reorder con vendor pineado, resetFilters (no toca columnas), resetView (restaura
+  orden+visibilidad), matching de search. Click-through visual no ejercitado (extensión de Chrome sin
+  conectar).
+- Archivado → `archive/2026-07-03-add-bills-table-toolbar`; specs: `bills-table-view` creado (+5),
+  `bills-list-tabs` actualizado (+1 ADDED). `openspec validate --all` → 10 passed, 0 failed. No quedan
+  changes activos.

@@ -5,6 +5,7 @@ import { ArrowUpDown } from "lucide-react";
 import { Badge, Button, DataTable } from "ui-system";
 
 import type { BillRow } from "@/lib/bill-row";
+import { useBillsView, type ColumnKey } from "@/stores/bills-view";
 import { VendorElementRow } from "./vendor-element-row";
 
 export type { BillRow };
@@ -37,8 +38,11 @@ function date(iso: string) {
 }
 
 
-const columns: ColumnDef<BillRow>[] = [
-  {
+// Column defs keyed by the same keys the view store uses, so visibility/order
+// derive by simple lookup.
+const COLUMN_DEFS: Record<ColumnKey, ColumnDef<BillRow>> = {
+  vendor: {
+    id: "vendor",
     accessorKey: "vendor",
     header: "Vendor",
     meta: { className: "border-r" },
@@ -51,7 +55,8 @@ const columns: ColumnDef<BillRow>[] = [
       />
     ),
   },
-  {
+  number: {
+    id: "number",
     accessorKey: "number",
     header: "Invoice",
     cell: ({ row }) => (
@@ -60,7 +65,8 @@ const columns: ColumnDef<BillRow>[] = [
       </span>
     ),
   },
-  {
+  dueDate: {
+    id: "dueDate",
     accessorKey: "dueDate",
     header: "Due date",
     cell: ({ row }) => (
@@ -76,7 +82,8 @@ const columns: ColumnDef<BillRow>[] = [
       </div>
     ),
   },
-  {
+  status: {
+    id: "status",
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
@@ -84,7 +91,8 @@ const columns: ColumnDef<BillRow>[] = [
       return <Badge variant={s.variant}>{s.label}</Badge>;
     },
   },
-  {
+  amount: {
+    id: "amount",
     accessorKey: "amount",
     header: ({ column }) => (
       <Button
@@ -103,8 +111,39 @@ const columns: ColumnDef<BillRow>[] = [
       </div>
     ),
   },
-];
+};
+
+/** Does a row match the free-text search? Matches vendor + invoice number. */
+function matchesSearch(row: BillRow, q: string) {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
+  return (
+    row.vendor.toLowerCase().includes(needle) ||
+    row.number.toLowerCase().includes(needle)
+  );
+}
 
 export function BillsTable({ rows }: { rows: BillRow[] }) {
-  return <DataTable columns={columns} data={rows} selectable />;
+  const search = useBillsView((s) => s.search);
+  const columnVisibility = useBillsView((s) => s.columnVisibility);
+  const columnOrder = useBillsView((s) => s.columnOrder);
+
+  // Derive the columns + rows the DataTable renders — the store is the source
+  // of truth, applied here so DataTable stays generic (see design D2).
+  const columns = columnOrder
+    .filter((key) => columnVisibility[key])
+    .map((key) => COLUMN_DEFS[key]);
+
+  const filtered = rows.filter((r) => matchesSearch(r, search));
+  const overdue = filtered.filter((r) => r.overdue).length;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        {filtered.length} {filtered.length === 1 ? "bill" : "bills"}
+        {overdue > 0 ? ` · ${overdue} overdue` : ""}
+      </p>
+      <DataTable columns={columns} data={filtered} selectable />
+    </div>
+  );
 }

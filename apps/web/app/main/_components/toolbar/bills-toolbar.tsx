@@ -1,36 +1,13 @@
 "use client";
 
-import { CalendarDays, Download, ListFilter } from "lucide-react";
-
-import { IconButton } from "@/components/icon-button";
 import { BillsSearch } from "./bills-search";
 import { ColumnsMenu } from "./columns-menu";
+import { ExportButton } from "./export-button";
 import { OptionsMenu } from "./options-menu";
-
-/** Disabled icon button — a visual placeholder for controls built in a later change. */
-function PlaceholderIcon({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <IconButton
-      disabled
-      aria-disabled="true"
-      aria-label={`${label} (coming soon)`}
-      title="Coming soon"
-    >
-      {children}
-    </IconButton>
-  );
-}
 
 /**
  * The bills table toolbar: borderless search on the left, and a cluster of
- * controls on the right. Columns and Options are live; filter / calendar /
- * export are placeholders until the filters change lands.
+ * controls on the right — Columns, Export (CSV of the selected rows), Options.
  */
 export function BillsToolbar() {
   return (
@@ -39,16 +16,8 @@ export function BillsToolbar() {
         <BillsSearch />
       </div>
       <div className="flex items-center gap-1.5">
-        <PlaceholderIcon label="Filter">
-          <ListFilter className="size-4" />
-        </PlaceholderIcon>
-        <PlaceholderIcon label="Date range">
-          <CalendarDays className="size-4" />
-        </PlaceholderIcon>
         <ColumnsMenu />
-        <PlaceholderIcon label="Export">
-          <Download className="size-4" />
-        </PlaceholderIcon>
+        <ExportButton />
         <OptionsMenu />
       </div>
     </div>

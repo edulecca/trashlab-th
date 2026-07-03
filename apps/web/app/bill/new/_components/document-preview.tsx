@@ -1,6 +1,8 @@
 "use client";
 
 import { FileText, Loader2, RefreshCw, Upload } from "lucide-react";
+
+import { ScanMessages } from "./scan-messages";
 import { Button } from "ui-system";
 
 import { useBillDraft } from "@/stores/bill-draft";
@@ -37,9 +39,10 @@ export function DocumentPreview() {
 
       <div className="min-h-0 flex-1 p-4">
         {extracting ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2 rounded-lg border bg-background text-sm font-medium text-muted-foreground">
+          <div className="flex h-full flex-col items-center justify-center gap-2 rounded-lg border bg-background px-6 text-sm font-medium text-muted-foreground">
             <Loader2 className="size-5 animate-spin" />
             Reading invoice…
+            <ScanMessages />
           </div>
         ) : url ? (
           <iframe

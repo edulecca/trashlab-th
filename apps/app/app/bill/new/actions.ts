@@ -6,6 +6,10 @@ import { prisma } from "@/lib/prisma";
 import { Prisma, type BillStatus } from "@/generated/prisma/client";
 import { findOrCreateVendor } from "@/lib/vendors";
 import { DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
+import { billDraftInput, parseLineItemsJson } from "@/lib/bill-draft-input";
+import { MAX_FILE_BYTES } from "@/lib/ai/config";
+
+const PDF_MAGIC = "%PDF-";
 
 /**
  * Persist the reviewed bill draft. The PDF blob (held in the client draft store
@@ -15,45 +19,65 @@ import { DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
 export async function saveDraft(fd: FormData) {
   const get = (k: string) => (fd.get(k) as string | null)?.trim() ?? "";
 
-  const vendorName = get("vendorName");
-  const vendorEmail = get("vendorEmail");
-  const number = get("number");
-  const currency = get("currency") || "USD";
-  const invoiceDate = get("invoiceDate");
-  const dueDate = get("dueDate");
-  const description = get("description");
-
-  // Reviewed line items (JSON array of { description, amount }). Drop empty rows.
-  type RawItem = { description?: string; amount?: string };
-  let rawItems: RawItem[] = [];
-  try {
-    rawItems = JSON.parse(get("lineItems") || "[]");
-  } catch {
-    rawItems = [];
+  // Validate the payload (bounds/types/enums/formats) before touching the DB. A
+  // draft may be partial, so this enforces shape — not required-ness — and throws
+  // on abuse: over-long strings, non-numeric amounts, bad dates/email, or a
+  // malformed line-item array.
+  const parsed = billDraftInput.safeParse({
+    vendorName: get("vendorName"),
+    vendorEmail: get("vendorEmail"),
+    number: get("number"),
+    currency: get("currency") || "USD",
+    invoiceDate: get("invoiceDate"),
+    dueDate: get("dueDate"),
+    description: get("description"),
+    tax: get("tax"),
+    paymentMethod: get("paymentMethod"),
+    billId: get("billId") || undefined,
+    lineItems: parseLineItemsJson(get("lineItems")),
+  });
+  if (!parsed.success) {
+    const detail = parsed.error.issues
+      .map((i) => `${i.path.join(".") || "field"}: ${i.message}`)
+      .join("; ");
+    throw new Error(`Invalid bill draft — ${detail}`);
   }
-  const items = rawItems
+  const input = parsed.data;
+
+  // Drop empty rows; amounts are already validated as non-negative numeric strings.
+  const items = input.lineItems
     .map((it) => ({
-      description: (it.description ?? "").trim(),
-      price: parseFloat(it.amount ?? ""),
+      description: it.description,
+      price: it.amount === "" ? 0 : Number(it.amount),
     }))
-    .map((it) => ({ ...it, price: Number.isNaN(it.price) ? 0 : it.price }))
     .filter((it) => it.description !== "" || it.price !== 0);
 
   const subtotalNum = items.reduce((sum, it) => sum + it.price, 0);
-  const taxNum = Math.max(0, parseFloat(get("tax")) || 0);
+  const taxNum = input.tax === "" ? 0 : Number(input.tax);
   // `amount` is the grand total the payer owes: subtotal + tax.
   const total = subtotalNum + taxNum;
 
+  // The PDF blob is validated here too — saveDraft is a direct entry point, not
+  // only reached via /api/extract: size cap + real-PDF magic bytes. (Left
+  // unannotated so `bytes` infers the narrow Buffer type Prisma's Bytes expects.)
   const file = fd.get("file");
+  if (file instanceof File && file.size > MAX_FILE_BYTES) {
+    throw new Error(
+      `Attached PDF is larger than ${Math.round(MAX_FILE_BYTES / 1024)}KB.`
+    );
+  }
   const bytes =
     file instanceof File ? Buffer.from(await file.arrayBuffer()) : null;
+  if (bytes && bytes.subarray(0, 5).toString("latin1") !== PDF_MAGIC) {
+    throw new Error("Attached file is not a PDF.");
+  }
 
   // No auth yet — attribute the upload to the first user (demo).
   const user = await prisma.user.findFirst();
   if (!user) throw new Error("No user found to attribute the bill to.");
 
   // Reuse the vendor from the scan (or an earlier bill) — deduped by name + email.
-  const vendor = await findOrCreateVendor(vendorName, vendorEmail);
+  const vendor = await findOrCreateVendor(input.vendorName, input.vendorEmail);
 
   // One BillLineItem per reviewed row; quantity flattened to 1 for the MVP.
   const lineItemsCreate = items.map((it, order) => {
@@ -69,20 +93,20 @@ export async function saveDraft(fd: FormData) {
   });
 
   const shared = {
-    number: number || "DRAFT",
+    number: input.number || "DRAFT",
     amount: new Prisma.Decimal(total),
     tax: new Prisma.Decimal(taxNum),
-    currency,
-    invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
-    dueDate: dueDate ? new Date(dueDate) : new Date(),
-    memo: description || null,
-    paymentMethod: get("paymentMethod") || DEFAULT_PAYMENT_METHOD,
+    currency: input.currency,
+    invoiceDate: input.invoiceDate ? new Date(input.invoiceDate) : new Date(),
+    dueDate: input.dueDate ? new Date(input.dueDate) : new Date(),
+    memo: input.description || null,
+    paymentMethod: input.paymentMethod,
     vendorId: vendor.id,
   };
 
   // Upsert: update the existing draft in place, else create a new one. Status
   // is never touched here — transitions go through approveBill / payBill.
-  const billId = get("billId");
+  const billId = input.billId;
   const bill = billId
     ? await prisma.bill.update({
         where: { id: billId },

@@ -258,3 +258,90 @@ Registro cronológico de decisiones y trabajo, para luego volcarlo al README / e
 - Archivado → `archive/2026-07-03-add-bills-table-toolbar`; specs: `bills-table-view` creado (+5),
   `bills-list-tabs` actualizado (+1 ADDED). `openspec validate --all` → 10 passed, 0 failed. No quedan
   changes activos.
+
+### Table UI + design-system polish (`b9adea1`)
+- **Tabla `/main`**: el borde de las filas es el default (`border-b` en `TableRow`); se sacó la prop opt-in
+  `border-r` por columna y se horneó el divisor vertical entre **todas** las columnas directo en las
+  primitivas `TableHead`/`TableCell` (`border-r last:border-r-0`) — comportamiento default, sin config.
+- **`SearchField`** extraído: search borderless/transparente con variantes `lg`/`sm` (primero en
+  `apps/app/components/search-field.tsx`). El search del toolbar (`bills-search`) y el del rail lo consumen.
+- **Botón** `size lg` bajado a `h-11` (más rectangular). Search del rail con `border-y` full-width + más alto.
+
+### Componentización: `/main` y `/bill/new` (`7780d4b`, `8766dff`)
+- **`/main/_components/`** reorganizado en subcarpetas: `toolbar/` (search, columns-menu, options-menu,
+  bills-toolbar) y `table/` (bills-table + `columns.tsx` + `cells/` con `vendor-cell`, `status-cell`,
+  `amount-cell`, `due-date-cell`). `bills-table.tsx` (162 líneas) partido: ensamblador + defs + celdas.
+- **`SearchField` y `Skeleton` movidos al `ui-system`** (con story cada uno). `DataTable` sumó
+  **agrupación** (prop `groupBy` → fila-encabezado full-width por sección, con checkbox que selecciona solo
+  su grupo, ícono y contador) y **estado loading** (`loading`/`loadingRows` → filas skeleton). `IconButton`
+  interno para el toolbar.
+- **`bill-form.tsx` (302 líneas)** partido en `form/`: `bill-form` (orquestador ~110), `section-badge`,
+  `vendor-section`, `details-section`, `line-items-editor`, `totals-summary`, `form-footer`. Las secciones
+  pasan a **presentacionales** (data + `disabled` + handlers por props; sin suscribirse al store), para
+  poder reusarlas read-only. `VendorAvatar` extraído a `components/`; `bills-rail` extraído.
+- **`lib/` nuevos/dedup**: `format.ts` (money tolerante + `formatDate`, mata 3 copias), `bill-status.ts`
+  (`STATUS_DISPLAY` + `STATUS_TO_CATEGORY` + `CATEGORY_META` + `categoryRank`), `bills.ts`
+  (`matchesBillSearch`, `billHref`). Se sacaron `NEEDS_REVIEW` y `SCHEDULED` del enum (migración
+  `drop_needs_review_scheduled`, aditiva-inversa manual). Overview agrupa en 4 secciones (Ready for review /
+  Awaiting approval / Ready for release / Paid) con íconos lucide (`Circle`/`CircleCheck`/`CircleDot`/
+  `CircleDollarSign`).
+
+### OpenSpec change: `add-bill-view-screen` (`69128dc`, archivado)
+- Pantalla read-only **`/bill/view/[id]`**: carga el bill de la DB y renderiza el mismo form del create pero
+  **disabled**, prellenado. Draft → `redirect("/bill/new")`; id inexistente → `notFound()`.
+- **Reuso, no duplicación**: `ResizableColumns` y `bills-rail` movidos a `@/components/`; las secciones del
+  form (ahora presentacionales) se reusan con `disabled`. Panel PDF read-only nuevo (`bill-pdf-panel`) — no
+  el `DocumentPreview` (que es upload+extract).
+- **Serví el PDF**: `GET /api/bills/[id]/file` (bytes `application/pdf` o 404). Loader `lib/bill-view.ts`
+  (bill + vendor + line items, sin traer los bytes; `hasFile` por proyección `file IS NOT NULL`).
+- **Navegación**: `onRowClick` en `DataTable` (checkbox/acciones hacen `stopPropagation`) + `<Link>` en el
+  rail; `billHref` rutea por status (DRAFT→create, resto→view).
+- **Top bar `/bill`** con context (avatar + status + `VENDOR INV# NUMBER`) publicado por cada pantalla vía
+  context, e ícono de panel que **colapsa el rail** (coordina `rail-toggle` context + `usePanelRef` del
+  resizable; la sección izquierda del header sigue el ancho real del rail para alinear el divisor).
+- Gotcha: al mover funciones puras (`subtotal`/`invoiceTotal`) el server las importaba desde el store
+  `"use client"` → 500; se movieron a `lib/line-items.ts`. Toaster (`sonner`) sumado al DS.
+- Archivado → `archive/2026-07-03-add-bill-view-screen`; specs `bill-view-page` (nuevo) + deltas de
+  `bills-table-view` / `bill-create-page`. Verificado por curl: view con/sin PDF, draft→307, unknown→404.
+
+### Vendor find-or-create al escanear (`cb18ec6`)
+- Al terminar el scan (`/api/extract`), **find-or-create del Vendor por name+email** (`lib/vendors.ts`); si
+  re-escaneás la misma factura, reusa el vendor (no duplica). `saveDraft` usa el mismo helper (antes
+  matcheaba solo por name). Verificado: mismo name+email reusa, email distinto crea nuevo.
+
+### Storybook: stories a carpeta propia (`679e253`)
+- Los `*.stories.tsx` movidos de `components/ui/` a `src/stories/` (separar componentes de su documentación).
+
+### OpenSpec change: `add-bill-lifecycle-actions` (`cbd68ba`)
+- **Máquina de estados** DRAFT → REVIEWED → APPROVED → PAID, con writes guardados (`updateMany` con `where`
+  de status origen; `count===0` = estado inesperado). Actions `confirmBill`/`approveBill`/`payBill` en
+  `actions.ts`; `payBill` crea el `Payment` (método elegido) en una `$transaction`.
+- **Payment method** por bill: campo `Bill.paymentMethod` (slug ach/check, migración aditiva), selector
+  `PaymentMethodSection` (ACH / By Check), `lib/payment-methods.ts` (`PAYMENT_METHODS` + `DEFAULT`).
+- **Auto-save del draft tras OCR**: `persist-draft.ts` (`persistDraft` compartido); `saveDraft` pasó a
+  **upsert** (crea o actualiza por `billId`) y el `DocumentPreview` persiste el DRAFT apenas termina la
+  extracción (resumible / aparece en Drafts). Store `bill-draft` guarda `billId`.
+- **UI de acciones**: `bill-action-bar` (view) + `pay-bill-cell` (tabla) + hook `use-bill-actions` (mutations
+  RQ con invalidación + toast). Footer del create con **Save draft / Confirm**. Toast success en verde del
+  token `--success`.
+- **Seed** reescrito y alineado al schema/flujo: `paymentMethod` en todos los bills, pagos solo en
+  PAID/FAILED, 10 bills repartidos en las 4 secciones, +2 vendors.
+
+### OpenSpec change: `add-duplicate-bill-detection` + soft delete (`65f7463`)
+- **Detección de duplicados 100% en UI** (sin persistir): dos bills son duplicados si comparten invoice
+  number + vendor; original = `createdAt` más viejo. `lib/duplicates.ts` (`annotateDuplicates` +
+  `findDuplicateNumber`) corre en los componentes cliente sobre los bills ya cargados. `BillRow` gana
+  `duplicateOf`. Pill **"Duplicate"** (destructive) en tabla y rail; banner destructive arriba del form.
+- **Soft delete**: estado nuevo **`DELETED`** en el enum (migración aditiva `bill_status_deleted`).
+  `deleteBill` marca DRAFT→DELETED (no borra). Se excluye de **todo fetch** vía `visibleBillsWhere`
+  (`/api/bills`, rails, `getBillView`→null→404); `BILL_STATUSES` sin DELETED. "Delete Bill" en el create
+  (Options dropdown / footer, solo drafts) → reset store + `/main`. **New Bill** resetea el store.
+- Gotcha: importar el **valor** `BillStatus` en `lib/bills` (que usan componentes cliente) arrastraba el
+  runtime de Prisma al bundle → se dejó import **type-only** + string literal `"DELETED"`.
+- Verificado a nivel DB/lógica: helpers (original no marcado, dup→number, blank/vendor≠ null), soft-delete
+  oculto de fetch/tab, `/api/bills` no lo devuelve.
+
+### Validación server-side de `saveDraft` (en curso, sin commitear)
+- `lib/bill-draft-input.ts`: schema Zod para el payload de `saveDraft` — valida **bounds/tipos/enums/
+  formatos** (no required-ness: el draft puede ser parcial; lo required va en Confirm). El blob PDF se valida
+  aparte (tamaño `MAX_FILE_BYTES` + magic bytes `%PDF-`). `saveDraft` rechaza payloads abusivos con detalle.

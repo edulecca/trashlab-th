@@ -43,7 +43,6 @@ const columns: ColumnDef<Bill>[] = [
   {
     accessorKey: "vendor",
     header: "Vendor",
-    meta: { className: "border-r" },
     cell: ({ row }) => (
       <span className="font-medium">{row.getValue("vendor")}</span>
     ),

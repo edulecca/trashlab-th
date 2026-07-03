@@ -35,7 +35,7 @@ function PlaceholderIcon({
  */
 export function BillsToolbar() {
   return (
-    <div className="flex items-center gap-3 border-b">
+    <div className="flex items-center gap-3 border-b bg-muted px-4 md:px-8">
       <div className="flex-1">
         <BillsSearch />
       </div>

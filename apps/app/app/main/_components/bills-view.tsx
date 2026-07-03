@@ -40,8 +40,14 @@ export function BillsView() {
   }
 
   return (
-    <div className="space-y-4">
-      <Tabs value={active.key} onValueChange={selectTab}>
+    // Break out of the page's horizontal padding so the toolbar and table go
+    // edge-to-edge (full-bleed); text inside is re-padded to align with the header.
+    <div className="-mx-4 space-y-4 md:-mx-8">
+      <Tabs
+        value={active.key}
+        onValueChange={selectTab}
+        className="px-4 md:px-8"
+      >
         <TabsList variant="line" size="lg">
           {TABS.map((t) => (
             <TabsTrigger key={t.key} value={t.key}>

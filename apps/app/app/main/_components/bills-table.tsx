@@ -45,7 +45,6 @@ const COLUMN_DEFS: Record<ColumnKey, ColumnDef<BillRow>> = {
     id: "vendor",
     accessorKey: "vendor",
     header: "Vendor",
-    meta: { className: "border-r" },
     cell: ({ row }) => (
       <VendorElementRow
         vendor={row.original.vendor}
@@ -70,14 +69,10 @@ const COLUMN_DEFS: Record<ColumnKey, ColumnDef<BillRow>> = {
     accessorKey: "dueDate",
     header: "Due date",
     cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <span className={row.original.overdue ? "text-destructive" : ""}>
-          {date(row.getValue("dueDate"))}
-        </span>
+      <div className="flex flex-col">
+        <span>{date(row.getValue("dueDate"))}</span>
         {row.original.overdue ? (
-          <Badge variant="destructive" outline>
-            Overdue
-          </Badge>
+          <span className="text-xs text-destructive">Overdue</span>
         ) : null}
       </div>
     ),
@@ -113,6 +108,25 @@ const COLUMN_DEFS: Record<ColumnKey, ColumnDef<BillRow>> = {
   },
 };
 
+// Fixed trailing column — always last, never user-configurable (kept out of the
+// view store / columns menu). Holds the per-row action for the bill's status.
+const ACTION_COLUMN: ColumnDef<BillRow> = {
+  id: "action",
+  header: "Action",
+  enableSorting: false,
+  cell: ({ row }) =>
+    row.original.status === "APPROVED" ? (
+      <div className="flex justify-center">
+        <Button
+          size="md"
+          onClick={() => console.log("[bill] pay", row.original.id)}
+        >
+          Pay Bill
+        </Button>
+      </div>
+    ) : null,
+};
+
 /** Does a row match the free-text search? Matches vendor + invoice number. */
 function matchesSearch(row: BillRow, q: string) {
   const needle = q.trim().toLowerCase();
@@ -130,19 +144,18 @@ export function BillsTable({ rows }: { rows: BillRow[] }) {
 
   // Derive the columns + rows the DataTable renders — the store is the source
   // of truth, applied here so DataTable stays generic (see design D2).
-  const columns = columnOrder
-    .filter((key) => columnVisibility[key])
-    .map((key) => COLUMN_DEFS[key]);
+  // Derived data columns, then the fixed action column pinned last.
+  const columns = [
+    ...columnOrder
+      .filter((key) => columnVisibility[key])
+      .map((key) => COLUMN_DEFS[key]),
+    ACTION_COLUMN,
+  ];
 
   const filtered = rows.filter((r) => matchesSearch(r, search));
-  const overdue = filtered.filter((r) => r.overdue).length;
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        {filtered.length} {filtered.length === 1 ? "bill" : "bills"}
-        {overdue > 0 ? ` · ${overdue} overdue` : ""}
-      </p>
       <DataTable columns={columns} data={filtered} selectable />
     </div>
   );

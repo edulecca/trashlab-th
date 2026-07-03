@@ -1,6 +1,6 @@
-import { Search } from "lucide-react";
-
 import { prisma } from "@/lib/prisma";
+
+import { SearchField } from "@/components/search-field";
 
 import { BillForm } from "./_components/bill-form";
 import { DocumentPreview } from "./_components/document-preview";
@@ -35,11 +35,13 @@ export default async function NewBillPage() {
       left={
         <>
           {/* Left — bill list rail (placeholder until the ui-system component lands) */}
-          <div className="shrink-0 p-3">
-            <div className="flex h-9 items-center gap-2 rounded-md border px-3 text-sm text-muted-foreground">
-              <Search className="size-4" />
-              <span>Search bills</span>
-            </div>
+          <div className="shrink-0 px-3">
+            <SearchField
+              size="sm"
+              placeholder="Search bills"
+              aria-label="Search bills"
+              className="h-11 border-y"
+            />
           </div>
           <ul className="min-h-0 flex-1 overflow-auto px-2 pb-2">
             {bills.map((b) => (

@@ -291,11 +291,11 @@ export function BillForm() {
             Draft saved
           </span>
         ) : null}
-        <Button variant="ghost" onClick={onSaveDraft} disabled={saving}>
+        <Button variant="ghost" size="md" onClick={onSaveDraft} disabled={saving}>
           {saving ? <Loader2 className="size-4 animate-spin" /> : null}
           Save draft
         </Button>
-        <Button onClick={onCreate}>Create bill</Button>
+        <Button size="md" onClick={onCreate}>Create bill</Button>
       </div>
     </div>
   );

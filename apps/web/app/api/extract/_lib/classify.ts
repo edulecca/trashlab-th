@@ -6,9 +6,9 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, Output } from "ai";
 
-import { CLASSIFIER_MODEL } from "./config";
+import { classificationSchema, type Classification } from "@/lib/extraction/schema";
+import { CLASSIFIER_MODEL } from "./models";
 import { CLASSIFIER_SYSTEM } from "./prompts";
-import { classificationSchema, type Classification } from "./schema";
 
 export async function classify(pdf: Uint8Array): Promise<Classification> {
   const { output } = await generateText({

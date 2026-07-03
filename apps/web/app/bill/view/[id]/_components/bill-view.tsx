@@ -3,6 +3,7 @@ import { Badge } from "ui-system";
 import { BillTopbarSetter } from "@/app/bill/_components/bill-topbar";
 import { BillActionBar } from "./bill-action-bar";
 import { DetailsSection } from "@/app/bill/new/_components/form/details-section";
+import { FormSection } from "@/app/bill/new/_components/form/form-section";
 import { LineItemsEditor } from "@/app/bill/new/_components/form/line-items-editor";
 import { PaymentMethodSection } from "@/app/bill/new/_components/form/payment-method-section";
 import { TotalsSummary } from "@/app/bill/new/_components/form/totals-summary";
@@ -26,17 +27,8 @@ export function BillView({
   bill: BillViewData;
   rows: BillRow[];
 }) {
-  const form: DraftForm = {
-    vendorName: bill.vendorName,
-    vendorEmail: bill.vendorEmail,
-    number: bill.number,
-    invoiceDate: bill.invoiceDate,
-    dueDate: bill.dueDate,
-    currency: bill.currency,
-    description: bill.description,
-    tax: bill.tax,
-    paymentMethod: bill.paymentMethod,
-  };
+  // BillViewData is a superset of DraftForm — pass it straight to the sections.
+  const form: DraftForm = bill;
 
   const status = STATUS_DISPLAY[bill.status];
   const title =
@@ -68,8 +60,7 @@ export function BillView({
         <div className="min-h-0 flex-1 space-y-8 overflow-auto px-8 py-8">
           <VendorSection form={form} disabled />
           <DetailsSection form={form} lineItems={bill.lineItems} disabled />
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold">Line items</h2>
+          <FormSection title="Line items" disabled>
             <LineItemsEditor lineItems={bill.lineItems} disabled />
             <TotalsSummary
               lineItems={bill.lineItems}
@@ -77,7 +68,7 @@ export function BillView({
               currency={bill.currency}
               disabled
             />
-          </section>
+          </FormSection>
 
           <PaymentMethodSection value={bill.paymentMethod} disabled />
         </div>

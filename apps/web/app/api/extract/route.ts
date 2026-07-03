@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { classify } from "@/lib/ai/classify";
-import { extract } from "@/lib/ai/extract";
-import type { ExtractResult } from "@/lib/ai/schema";
-import { validatePdf } from "@/lib/pdf/validate";
+import type { ExtractResult } from "@/lib/extraction/schema";
 import { findOrCreateVendor } from "@/lib/bill/vendors";
+import { classify } from "./_lib/classify";
+import { extract } from "./_lib/extract";
+import { validatePdf } from "./_lib/validate";
 
 // pdf-lib + AI calls need the Node runtime, and every upload is unique — no caching.
 export const runtime = "nodejs";

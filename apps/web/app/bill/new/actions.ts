@@ -7,7 +7,7 @@ import { Prisma, type BillStatus } from "@/generated/prisma/client";
 import { findOrCreateVendor } from "@/lib/bill/vendors";
 import { DEFAULT_PAYMENT_METHOD } from "@/lib/bill/payment-methods";
 import { billDraftInput, parseLineItemsJson } from "./_lib/draft-input";
-import { MAX_FILE_BYTES } from "@/lib/ai/config";
+import { MAX_FILE_BYTES } from "@/lib/extraction/limits";
 
 const PDF_MAGIC = "%PDF-";
 

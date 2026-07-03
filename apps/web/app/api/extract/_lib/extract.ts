@@ -5,9 +5,9 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, Output } from "ai";
 
-import { EXTRACTOR_MODEL } from "./config";
+import { extractionSchema, type ExtractionData } from "@/lib/extraction/schema";
+import { EXTRACTOR_MODEL } from "./models";
 import { EXTRACTOR_SYSTEM } from "./prompts";
-import { extractionSchema, type ExtractionData } from "./schema";
 
 export async function extract(pdf: Uint8Array): Promise<ExtractionData> {
   const { output } = await generateText({

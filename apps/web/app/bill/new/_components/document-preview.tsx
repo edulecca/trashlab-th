@@ -5,7 +5,7 @@ import { FileText, Loader2, RefreshCw, Upload } from "lucide-react";
 import { Button, toast } from "ui-system";
 
 import { useBillDraft } from "@/stores/bill-draft";
-import type { ExtractResult } from "@/lib/ai/schema";
+import type { ExtractResult } from "@/lib/extraction/schema";
 import { persistDraft } from "../_lib/persist-draft";
 
 /**

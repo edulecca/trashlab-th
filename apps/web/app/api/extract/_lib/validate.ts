@@ -4,8 +4,8 @@
  */
 import { PDFDocument } from "pdf-lib";
 
-import { MAX_FILE_BYTES, MAX_PAGES } from "@/lib/ai/config";
-import type { ExtractError } from "@/lib/ai/schema";
+import { MAX_FILE_BYTES, MAX_PAGES } from "@/lib/extraction/limits";
+import type { ExtractError } from "@/lib/extraction/schema";
 
 const PDF_MAGIC = "%PDF-";
 

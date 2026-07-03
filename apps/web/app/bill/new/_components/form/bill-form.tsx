@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { AlertCircle, ChevronDown, Trash2 } from "lucide-react";
 import {
   Badge,
@@ -9,17 +8,16 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  toast,
 } from "ui-system";
 
 import { useBillTopbar } from "@/app/bill/_components/bill-topbar";
 import type { BillRow } from "@/lib/bill/row";
 import { findDuplicateNumber } from "@/lib/bill/duplicates";
 import { useBillDraft } from "@/stores/bill-draft";
-import { confirmBill, deleteBill } from "../../actions";
-import { persistDraft } from "../../_lib/persist-draft";
+import { useDraftActions } from "@/hooks/use-draft-actions";
 import { DetailsSection } from "./details-section";
 import { FormFooter } from "./form-footer";
+import { FormSection } from "./form-section";
 import { LineItemsEditor } from "./line-items-editor";
 import { PaymentMethodSection } from "./payment-method-section";
 import { TotalsSummary } from "./totals-summary";
@@ -39,16 +37,16 @@ export function BillForm({ bills }: { bills: BillRow[] }) {
   const status = useBillDraft((s) => s.status);
   const error = useBillDraft((s) => s.error);
   const billId = useBillDraft((s) => s.billId);
-  const reset = useBillDraft((s) => s.reset);
 
-  const router = useRouter();
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  // Create-flow mutations (RQ), same pattern as the table's useBillActions.
+  const { save, confirm, remove } = useDraftActions();
+  const saving = save.isPending || confirm.isPending || remove.isPending;
+  const saveError = save.isError ? "Could not save the draft. Try again." : null;
 
-  // Any edit to the draft invalidates the "Draft saved" hint.
+  // Any edit clears the "Draft saved" hint (and a prior save error).
   useEffect(() => {
-    setSaved(false);
+    save.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, lineItems]);
 
   // Publish the draft's context into the shared /bill top bar.
@@ -75,52 +73,6 @@ export function BillForm({ bills }: { bills: BillRow[] }) {
       ? `${form.vendorName} INV# ${form.number}`
       : "New bill";
 
-  async function onSaveDraft() {
-    setSaving(true);
-    setSaveError(null);
-    try {
-      await persistDraft();
-      setSaved(true);
-    } catch (err) {
-      console.error("[bill] save draft failed", err);
-      setSaveError("Could not save the draft. Try again.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  // Confirm: persist the latest form, transition DRAFT → REVIEWED, go to the view.
-  async function onConfirm() {
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const id = await persistDraft();
-      await confirmBill(id);
-      toast.success("Bill confirmed.");
-      router.push(`/bill/view/${id}`);
-    } catch (err) {
-      console.error("[bill] confirm failed", err);
-      setSaveError("Could not confirm the bill. Try again.");
-      setSaving(false);
-    }
-  }
-
-  async function onDelete() {
-    if (!billId) return;
-    setSaving(true);
-    setSaveError(null);
-    try {
-      await deleteBill(billId);
-      toast.success("Bill deleted.");
-      reset();
-      router.push("/main");
-    } catch (err) {
-      console.error("[bill] delete failed", err);
-      setSaveError("Could not delete the bill. Try again.");
-      setSaving(false);
-    }
-  }
-
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Header */}
@@ -141,7 +93,10 @@ export function BillForm({ bills }: { bills: BillRow[] }) {
                 <ChevronDown className="size-4 text-muted-foreground" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem variant="destructive" onSelect={() => onDelete()}>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={() => remove.mutate()}
+                >
                   <Trash2 />
                   Delete Bill
                 </DropdownMenuItem>
@@ -169,8 +124,7 @@ export function BillForm({ bills }: { bills: BillRow[] }) {
       <div className="min-h-0 flex-1 space-y-8 overflow-auto px-8 py-8">
         <VendorSection form={form} onChange={setField} />
         <DetailsSection form={form} lineItems={lineItems} onChange={setField} />
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Line items</h2>
+        <FormSection title="Line items">
           <LineItemsEditor
             lineItems={lineItems}
             onItemChange={setLineItem}
@@ -183,7 +137,7 @@ export function BillForm({ bills }: { bills: BillRow[] }) {
             currency={form.currency}
             onTaxChange={(value) => setField("tax", value)}
           />
-        </section>
+        </FormSection>
 
         <PaymentMethodSection
           value={form.paymentMethod}
@@ -194,12 +148,12 @@ export function BillForm({ bills }: { bills: BillRow[] }) {
       <FormFooter
         saving={saving}
         extracting={status === "extracting"}
-        saved={saved}
+        saved={save.isSuccess}
         saveError={saveError}
         deletable={deletable}
-        onDelete={onDelete}
-        onSaveDraft={onSaveDraft}
-        onConfirm={onConfirm}
+        onDelete={() => remove.mutate()}
+        onSaveDraft={() => save.mutate()}
+        onConfirm={() => confirm.mutate()}
       />
     </div>
   );

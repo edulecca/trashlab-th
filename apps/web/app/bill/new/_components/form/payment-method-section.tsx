@@ -4,6 +4,7 @@ import { FileText, Landmark } from "lucide-react";
 import { cn } from "ui-system";
 
 import { PAYMENT_METHODS } from "@/lib/bill/payment-methods";
+import { FormSection } from "./form-section";
 
 /** Slug → icon. Icons stay in the UI; slugs/labels come from the shared catalog. */
 const METHOD_ICONS: Record<string, typeof Landmark> = {
@@ -25,8 +26,7 @@ export function PaymentMethodSection({
   disabled?: boolean;
 }) {
   return (
-    <section className="space-y-4">
-      <h2 className="text-lg font-semibold">Payment method</h2>
+    <FormSection title="Payment method" disabled={disabled}>
       <div className="grid gap-3 sm:grid-cols-2">
         {PAYMENT_METHODS.map((m) => {
           const active = value === m.slug;
@@ -50,6 +50,6 @@ export function PaymentMethodSection({
           );
         })}
       </div>
-    </section>
+    </FormSection>
   );
 }

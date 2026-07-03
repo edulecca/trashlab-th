@@ -1,9 +1,9 @@
-import type { ChangeEvent } from "react";
 import { Input, Textarea } from "ui-system";
 
 import { subtotal as sumItems } from "../../_lib/line-items";
 import type { DraftForm, DraftLineItem } from "@/stores/bill-draft";
-import { SectionBadge } from "./section-badge";
+import { fieldSetter } from "../../_lib/field-setter";
+import { FormSection } from "./form-section";
 
 /** Bill header fields (invoice #, currency, dates, description). Presentational. */
 export function DetailsSection({
@@ -17,22 +17,14 @@ export function DetailsSection({
   disabled?: boolean;
   onChange?: (key: keyof DraftForm, value: string) => void;
 }) {
-  const set = (key: keyof DraftForm) =>
-    disabled
-      ? undefined
-      : (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-          onChange?.(key, e.target.value);
+  const set = fieldSetter(disabled, onChange);
 
   const complete = Boolean(
     form.number && form.invoiceDate && form.dueDate && sumItems(lineItems) > 0
   );
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center gap-2">
-        <h2 className="text-lg font-semibold">Bill details</h2>
-        {!disabled ? <SectionBadge complete={complete} /> : null}
-      </div>
+    <FormSection title="Bill details" complete={complete} disabled={disabled}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Input
           label="Invoice #"
@@ -74,6 +66,6 @@ export function DetailsSection({
           disabled={disabled}
         />
       </div>
-    </section>
+    </FormSection>
   );
 }

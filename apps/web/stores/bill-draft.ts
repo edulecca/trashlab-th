@@ -9,7 +9,7 @@
 
 import { create } from "zustand";
 
-import type { ExtractionData } from "@/lib/ai/schema";
+import type { ExtractionData } from "@/lib/extraction/schema";
 import { DEFAULT_PAYMENT_METHOD } from "@/lib/bill/payment-methods";
 
 export type DraftStatus = "idle" | "extracting" | "ready" | "error";

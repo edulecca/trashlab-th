@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
+import { findOrCreateVendor } from "@/lib/vendors";
 
 /**
  * Persist the reviewed bill draft. The PDF blob (held in the client draft store
@@ -50,18 +51,8 @@ export async function saveDraft(fd: FormData) {
   const user = await prisma.user.findFirst();
   if (!user) throw new Error("No user found to attribute the bill to.");
 
-  // Vendor matching is deferred: find by name, else create.
-  let vendor = vendorName
-    ? await prisma.vendor.findFirst({ where: { name: vendorName } })
-    : null;
-  if (!vendor) {
-    vendor = await prisma.vendor.create({
-      data: {
-        name: vendorName || "Unknown vendor",
-        email: vendorEmail || null,
-      },
-    });
-  }
+  // Reuse the vendor from the scan (or an earlier bill) — deduped by name + email.
+  const vendor = await findOrCreateVendor(vendorName, vendorEmail);
 
   const bill = await prisma.bill.create({
     data: {

@@ -153,7 +153,7 @@ function DataTable<TData, TValue>({
     return (
       <TableRow key={`group-${group.key}`} className="hover:bg-transparent">
         {selectable ? (
-          <TableCell className="h-14 bg-muted/40">
+          <TableCell className="h-14 bg-muted-foreground/15">
             <Checkbox
               checked={allSelected ? true : someSelected ? "indeterminate" : false}
               onCheckedChange={(value) =>
@@ -165,7 +165,7 @@ function DataTable<TData, TValue>({
         ) : null}
         <TableCell
           colSpan={tableColumns.length - (selectable ? 1 : 0)}
-          className="h-14 bg-muted/40 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+          className="h-14 bg-muted-foreground/15 text-xs font-medium tracking-wide text-muted-foreground uppercase"
         >
           <span className="flex items-center gap-2">
             {group.icon ? (

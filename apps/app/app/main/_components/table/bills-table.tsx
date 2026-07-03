@@ -3,14 +3,15 @@
 import { DataTable } from "ui-system";
 
 import type { BillRow } from "@/lib/bill-row";
-import { categoryRank, STATUS_CATEGORY } from "@/lib/bill-status";
+import { categoryRank, CATEGORY_META, STATUS_TO_CATEGORY } from "@/lib/bill-status";
 import { matchesBillSearch } from "@/lib/bills";
 import { useBillsView } from "@/stores/bills-view";
 import { ACTION_COLUMN, COLUMN_DEFS } from "./columns";
 
 // Adapter for the DataTable's grouping: a bill's status → { key, label, icon }.
 function billCategory(row: BillRow) {
-  const { key, label, Icon } = STATUS_CATEGORY[row.status];
+  const key = STATUS_TO_CATEGORY[row.status];
+  const { label, Icon } = CATEGORY_META[key];
   return { key, label, icon: <Icon /> };
 }
 

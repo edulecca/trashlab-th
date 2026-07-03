@@ -1,30 +1,7 @@
 import { ListItem } from "ui-system";
 
+import { VendorAvatar } from "@/components/vendor-avatar";
 import { formatDate } from "@/lib/format";
-
-/** Two-letter initials from a vendor name, for the avatar fallback. */
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-}
-
-function VendorAvatar({ name, img }: { name: string; img: string | null }) {
-  return (
-    <div className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted text-xs font-semibold text-muted-foreground">
-      {img ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={img} alt="" className="size-full object-cover" />
-      ) : (
-        initials(name)
-      )}
-    </div>
-  );
-}
 
 export type VendorCellProps = {
   vendor: string;

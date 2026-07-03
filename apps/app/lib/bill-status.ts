@@ -23,25 +23,29 @@ export const STATUS_DISPLAY: Record<
 };
 
 // Overview grouping: the bill lifecycle collapsed into ordered sections.
-export const CATEGORY_ORDER = [
-  "review",
-  "approval",
-  "release",
-  "paid",
-] as const;
+export const CATEGORY_ORDER = ["review", "approval", "release", "paid"] as const;
 export type CategoryKey = (typeof CATEGORY_ORDER)[number];
 
-export const STATUS_CATEGORY: Record<
-  BillStatus,
-  { key: CategoryKey; label: string; Icon: LucideIcon }
+/** Which section a status belongs to. */
+export const STATUS_TO_CATEGORY: Record<BillStatus, CategoryKey> = {
+  DRAFT: "review",
+  REVIEWED: "approval",
+  APPROVED: "release",
+  FAILED: "release",
+  PAID: "paid",
+};
+
+/** How a section renders — shared by the table group headers and the new-bill rail. */
+export const CATEGORY_META: Record<
+  CategoryKey,
+  { label: string; Icon: LucideIcon }
 > = {
-  DRAFT: { key: "review", label: "Ready for review", Icon: Circle },
-  REVIEWED: { key: "approval", label: "Awaiting approval", Icon: CircleCheck },
-  APPROVED: { key: "release", label: "Ready for release", Icon: CircleDot },
-  FAILED: { key: "release", label: "Ready for release", Icon: CircleDot },
-  PAID: { key: "paid", label: "Paid", Icon: CircleDollarSign },
+  review: { label: "Ready for review", Icon: Circle },
+  approval: { label: "Awaiting approval", Icon: CircleCheck },
+  release: { label: "Ready for release", Icon: CircleDot },
+  paid: { label: "Paid", Icon: CircleDollarSign },
 };
 
 /** Rank a status by its section order — used to sort rows into contiguous groups. */
 export const categoryRank = (status: BillStatus) =>
-  CATEGORY_ORDER.indexOf(STATUS_CATEGORY[status].key);
+  CATEGORY_ORDER.indexOf(STATUS_TO_CATEGORY[status]);

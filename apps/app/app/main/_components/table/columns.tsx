@@ -2,7 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Badge, Button } from "ui-system";
 
-import type { BillRow } from "@/lib/bill-row";
+import type { BillRow } from "@/lib/bill/row";
 import type { ColumnKey } from "@/stores/bills-view";
 import { AmountCell } from "./cells/amount-cell";
 import { DueDateCell } from "./cells/due-date-cell";
@@ -75,16 +75,15 @@ export const COLUMN_DEFS: Record<ColumnKey, ColumnDef<BillRow>> = {
       <AmountCell amount={row.original.amount} currency={row.original.currency} />
     ),
   },
-};
-
-// Fixed trailing column — always last, never user-configurable (kept out of the
-// view store / columns menu). Holds the per-row action for the bill's status.
-export const ACTION_COLUMN: ColumnDef<BillRow> = {
-  id: "action",
-  header: "Action",
-  enableSorting: false,
-  cell: ({ row }) =>
-    row.original.status === "APPROVED" ? (
-      <PayBillCell billId={row.original.id} />
-    ) : null,
+  // Trailing action column — pinned last and non-hideable via the store catalog
+  // (`pin: "end"`, `locked`). Holds the per-row action for the bill's status.
+  action: {
+    id: "action",
+    header: "Action",
+    enableSorting: false,
+    cell: ({ row }) =>
+      row.original.status === "APPROVED" ? (
+        <PayBillCell billId={row.original.id} />
+      ) : null,
+  },
 };

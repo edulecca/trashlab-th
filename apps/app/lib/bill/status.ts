@@ -6,7 +6,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import type { BillStatus } from "./bill-row";
+import type { BillStatus } from "./row";
 
 /** How a bill status renders as a Badge (label + ui-system Badge variant). */
 type BadgeVariant = "secondary" | "outline" | "success" | "destructive";

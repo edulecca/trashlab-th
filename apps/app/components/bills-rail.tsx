@@ -5,14 +5,14 @@ import Link from "next/link";
 import { Badge, ListItem, SearchField } from "ui-system";
 
 import { VendorAvatar } from "@/components/vendor-avatar";
-import type { BillRow } from "@/lib/bill-row";
+import type { BillRow } from "@/lib/bill/row";
 import {
   CATEGORY_META,
   CATEGORY_ORDER,
   STATUS_TO_CATEGORY,
-} from "@/lib/bill-status";
-import { billHref, matchesBillSearch } from "@/lib/bills";
-import { annotateDuplicates } from "@/lib/duplicates";
+} from "@/lib/bill/status";
+import { billHref, matchesBillSearch } from "@/lib/bill/bills";
+import { annotateDuplicates } from "@/lib/bill/duplicates";
 import { formatDate, money } from "@/lib/format";
 
 /**

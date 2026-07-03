@@ -4,7 +4,7 @@ import { classify } from "@/lib/ai/classify";
 import { extract } from "@/lib/ai/extract";
 import type { ExtractResult } from "@/lib/ai/schema";
 import { validatePdf } from "@/lib/pdf/validate";
-import { findOrCreateVendor } from "@/lib/vendors";
+import { findOrCreateVendor } from "@/lib/bill/vendors";
 
 // pdf-lib + AI calls need the Node runtime, and every upload is unique — no caching.
 export const runtime = "nodejs";

@@ -2,7 +2,7 @@ import type { ChangeEvent } from "react";
 import { Input } from "ui-system";
 
 import { money } from "@/lib/format";
-import { invoiceTotal, subtotal as sumItems } from "@/lib/line-items";
+import { invoiceTotal, subtotal as sumItems } from "../../_lib/line-items";
 import type { DraftLineItem } from "@/stores/bill-draft";
 
 /** Totals breakdown: subtotal (Σ items) + tax = invoice total. Tax editable unless disabled. */

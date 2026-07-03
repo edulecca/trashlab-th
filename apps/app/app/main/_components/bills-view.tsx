@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "ui-system";
 
-import type { BillStatus } from "@/lib/bill-row";
+import type { BillStatus } from "@/lib/bill/row";
 import { useBills } from "@/hooks/use-bills";
+import { useBillsView } from "@/stores/bills-view";
 import { BillsToolbar } from "./toolbar/bills-toolbar";
 import { BillsTable } from "./table/bills-table";
 
@@ -29,6 +31,13 @@ export function BillsView() {
 
   const active = TABS.find((t) => t.key === params.get("tab")) ?? TABS[0];
   const { data: rows, isLoading, isError } = useBills({ status: active.status });
+
+  // Switching tabs shows a different row set — drop any lingering selection so
+  // bulk actions never target rows from the previous view.
+  const clearSelection = useBillsView((s) => s.clearSelection);
+  useEffect(() => {
+    clearSelection();
+  }, [active.key, clearSelection]);
 
   function selectTab(key: string) {
     const sp = new URLSearchParams(params);

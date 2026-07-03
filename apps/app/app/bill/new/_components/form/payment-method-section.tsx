@@ -3,7 +3,7 @@
 import { FileText, Landmark } from "lucide-react";
 import { cn } from "ui-system";
 
-import { PAYMENT_METHODS } from "@/lib/payment-methods";
+import { PAYMENT_METHODS } from "@/lib/bill/payment-methods";
 
 /** Slug → icon. Icons stay in the UI; slugs/labels come from the shared catalog. */
 const METHOD_ICONS: Record<string, typeof Landmark> = {

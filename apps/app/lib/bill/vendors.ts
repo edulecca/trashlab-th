@@ -1,6 +1,6 @@
 import type { Vendor } from "@/generated/prisma/client";
 
-import { prisma } from "./prisma";
+import { prisma } from "../prisma";
 
 /**
  * Find a vendor by exact name + email, or create one.

@@ -1,6 +1,6 @@
-import type { BillStatus } from "./bill-row";
-import { DEFAULT_PAYMENT_METHOD } from "./payment-methods";
-import { prisma } from "./prisma";
+import type { BillStatus } from "@/lib/bill/row";
+import { DEFAULT_PAYMENT_METHOD } from "@/lib/bill/payment-methods";
+import { prisma } from "@/lib/prisma";
 
 /** A read-only line item as the view form renders it (description + amount). */
 export type BillViewLineItem = { description: string; amount: string };

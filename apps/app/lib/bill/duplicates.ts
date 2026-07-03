@@ -1,4 +1,4 @@
-import type { BillRow } from "./bill-row";
+import type { BillRow } from "./row";
 
 /**
  * Duplicate detection — a pure UI derivation over bills already loaded in the

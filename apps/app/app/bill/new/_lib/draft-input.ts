@@ -8,7 +8,7 @@
  */
 import { z } from "zod";
 
-import { PAYMENT_METHODS, DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
+import { PAYMENT_METHODS, DEFAULT_PAYMENT_METHOD } from "@/lib/bill/payment-methods";
 
 const SLUGS: string[] = PAYMENT_METHODS.map((m) => m.slug);
 

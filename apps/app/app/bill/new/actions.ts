@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { Prisma, type BillStatus } from "@/generated/prisma/client";
-import { findOrCreateVendor } from "@/lib/vendors";
-import { DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
-import { billDraftInput, parseLineItemsJson } from "@/lib/bill-draft-input";
+import { findOrCreateVendor } from "@/lib/bill/vendors";
+import { DEFAULT_PAYMENT_METHOD } from "@/lib/bill/payment-methods";
+import { billDraftInput, parseLineItemsJson } from "./_lib/draft-input";
 import { MAX_FILE_BYTES } from "@/lib/ai/config";
 
 const PDF_MAGIC = "%PDF-";
@@ -171,6 +171,24 @@ export async function deleteBill(id: string) {
   if (count === 0) throw new Error("Cannot delete this bill.");
   revalidatePath("/main");
   revalidatePath("/bill/new");
+}
+
+/**
+ * Bulk soft-delete for the table's selection. Only DRAFT bills among `ids` are
+ * tombstoned (the `status: "DRAFT"` guard); any non-draft rows are silently
+ * skipped. Returns how many were actually deleted so the UI can report it.
+ */
+export async function deleteBills(ids: string[]): Promise<{ count: number }> {
+  if (ids.length === 0) return { count: 0 };
+  const { count } = await prisma.bill.updateMany({
+    where: { id: { in: ids }, status: "DRAFT" },
+    data: { status: "DELETED" },
+  });
+  if (count > 0) {
+    revalidatePath("/main");
+    revalidatePath("/bill/new");
+  }
+  return { count };
 }
 
 /** DRAFT → REVIEWED. Fields are saved by `saveDraft` just before this. */

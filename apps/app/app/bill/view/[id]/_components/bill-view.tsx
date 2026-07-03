@@ -9,9 +9,9 @@ import { TotalsSummary } from "@/app/bill/new/_components/form/totals-summary";
 import { VendorSection } from "@/app/bill/new/_components/form/vendor-section";
 import { BillsRail } from "@/components/bills-rail";
 import { ResizableColumns } from "@/components/resizable-columns";
-import type { BillRow } from "@/lib/bill-row";
-import { STATUS_DISPLAY } from "@/lib/bill-status";
-import type { BillViewData } from "@/lib/bill-view";
+import type { BillRow } from "@/lib/bill/row";
+import { STATUS_DISPLAY } from "@/lib/bill/status";
+import type { BillViewData } from "../_lib/bill-view";
 import type { DraftForm } from "@/stores/bill-draft";
 import { BillPdfPanel } from "./bill-pdf-panel";
 

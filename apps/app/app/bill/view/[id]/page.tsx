@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 
-import { toBillRow } from "@/lib/bill-row";
-import { getBillView } from "@/lib/bill-view";
-import { visibleBillsWhere } from "@/lib/bills";
+import { toBillRow } from "@/lib/bill/row";
+import { getBillView } from "./_lib/bill-view";
+import { visibleBillsWhere } from "@/lib/bill/bills";
 import { prisma } from "@/lib/prisma";
 
 import { BillView } from "./_components/bill-view";

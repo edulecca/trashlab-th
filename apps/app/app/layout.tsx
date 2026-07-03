@@ -4,7 +4,7 @@ import "./globals.css";
 
 import { Toaster } from "ui-system";
 
-import { QueryProvider } from "@/components/query-provider";
+import { QueryProvider } from "@/providers/query-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

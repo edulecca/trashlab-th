@@ -1,7 +1,7 @@
 import type { ChangeEvent } from "react";
 import { Input, Textarea } from "ui-system";
 
-import { subtotal as sumItems } from "@/lib/line-items";
+import { subtotal as sumItems } from "../../_lib/line-items";
 import type { DraftForm, DraftLineItem } from "@/stores/bill-draft";
 import { SectionBadge } from "./section-badge";
 

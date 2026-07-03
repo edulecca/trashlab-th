@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import type { BillRow, BillStatus } from "@/lib/bill-row";
+import type { BillRow, BillStatus } from "@/lib/bill/row";
 
 /** Normalize the filter to a stable, sorted array so cache keys are order-independent. */
 function normalize(status?: BillStatus | BillStatus[]): BillStatus[] {

@@ -1,7 +1,7 @@
 import { BillsRail } from "@/components/bills-rail";
 import { ResizableColumns } from "@/components/resizable-columns";
-import { toBillRow } from "@/lib/bill-row";
-import { visibleBillsWhere } from "@/lib/bills";
+import { toBillRow } from "@/lib/bill/row";
+import { visibleBillsWhere } from "@/lib/bill/bills";
 import { prisma } from "@/lib/prisma";
 
 import { BillForm } from "./_components/form/bill-form";

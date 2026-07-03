@@ -24,6 +24,22 @@ import { COLUMNS, useBillsView, type ColumnKey } from "@/stores/bills-view";
 const label = (key: ColumnKey) =>
   COLUMNS.find((c) => c.key === key)?.label ?? key;
 
+/** A pinned (non-hideable, non-draggable) column row — checked & disabled. */
+function PinnedRow({ columnKey }: { columnKey: ColumnKey }) {
+  return (
+    <div className="flex items-center gap-3 px-2 py-2">
+      <Checkbox
+        checked
+        disabled
+        aria-label={`${label(columnKey)} (always shown)`}
+      />
+      <span className="flex-1 truncate text-sm text-muted-foreground">
+        {label(columnKey)}
+      </span>
+    </div>
+  );
+}
+
 function SortableRow({ columnKey }: { columnKey: ColumnKey }) {
   const visible = useBillsView((s) => s.columnVisibility[columnKey]);
   const toggleColumn = useBillsView((s) => s.toggleColumn);
@@ -58,17 +74,17 @@ function SortableRow({ columnKey }: { columnKey: ColumnKey }) {
   );
 }
 
-/** Toolbar control: pick which columns show and drag to reorder. Vendor is locked. */
+const pinOf = (key: ColumnKey) => COLUMNS.find((c) => c.key === key)?.pin;
+
+/** Toolbar control: pick which columns show and drag to reorder. Pinned columns
+ * (Vendor first, Action last) stay fixed and can't be hidden. */
 export function ColumnsMenu() {
   const columnOrder = useBillsView((s) => s.columnOrder);
   const setColumnOrder = useBillsView((s) => s.setColumnOrder);
 
-  const locked = columnOrder.filter(
-    (k) => COLUMNS.find((c) => c.key === k)?.locked
-  );
-  const sortable = columnOrder.filter(
-    (k) => !COLUMNS.find((c) => c.key === k)?.locked
-  );
+  const start = columnOrder.filter((k) => pinOf(k) === "start");
+  const end = columnOrder.filter((k) => pinOf(k) === "end");
+  const sortable = columnOrder.filter((k) => !pinOf(k));
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -77,7 +93,8 @@ export function ColumnsMenu() {
     if (!over || active.id === over.id) return;
     const from = sortable.indexOf(active.id as ColumnKey);
     const to = sortable.indexOf(over.id as ColumnKey);
-    setColumnOrder([...locked, ...arrayMove(sortable, from, to)]);
+    // Keep pinned columns anchored at their edges.
+    setColumnOrder([...start, ...arrayMove(sortable, from, to), ...end]);
   }
 
   return (
@@ -88,14 +105,9 @@ export function ColumnsMenu() {
         </IconButton>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64 p-1.5">
-        {/* Locked column: always visible, not draggable. */}
-        {locked.map((k) => (
-          <div key={k} className="flex items-center gap-3 px-2 py-2">
-            <Checkbox checked disabled aria-label={`${label(k)} (always shown)`} />
-            <span className="flex-1 truncate text-sm text-muted-foreground">
-              {label(k)}
-            </span>
-          </div>
+        {/* Pinned columns: always visible, not draggable. Rendered at their edge. */}
+        {start.map((k) => (
+          <PinnedRow key={k} columnKey={k} />
         ))}
 
         <DndContext
@@ -109,6 +121,10 @@ export function ColumnsMenu() {
             ))}
           </SortableContext>
         </DndContext>
+
+        {end.map((k) => (
+          <PinnedRow key={k} columnKey={k} />
+        ))}
       </PopoverContent>
     </Popover>
   );

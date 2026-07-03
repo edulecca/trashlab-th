@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { BILL_STATUSES, toBillRow, type BillStatus } from "@/lib/bill-row";
-import { visibleBillsWhere } from "@/lib/bills";
+import { BILL_STATUSES, toBillRow, type BillStatus } from "@/lib/bill/row";
+import { visibleBillsWhere } from "@/lib/bill/bills";
 
 // Prisma + always-fresh reads.
 export const runtime = "nodejs";

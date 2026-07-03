@@ -53,6 +53,12 @@ interface DataTableProps<TData, TValue> {
   loadingRows?: number
   /** Click handler for a data row; makes rows clickable (interactive cells opt out). */
   onRowClick?: (row: TData) => void
+  /** Stable row id — keeps selection correct across data refetches/reorders. */
+  getRowId?: (row: TData) => string
+  /** Called with the selected rows' originals whenever the selection changes. */
+  onSelectionChange?: (rows: TData[]) => void
+  /** Bump this number to clear the current selection (e.g. after a bulk action). */
+  resetSelectionKey?: number
 }
 
 function DataTable<TData, TValue>({
@@ -63,6 +69,9 @@ function DataTable<TData, TValue>({
   loading = false,
   loadingRows = 5,
   onRowClick,
+  getRowId,
+  onSelectionChange,
+  resetSelectionKey,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
@@ -103,11 +112,30 @@ function DataTable<TData, TValue>({
     enableRowSelection: selectable,
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
+    getRowId,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   })
 
   const rows = table.getRowModel().rows
+
+  // Report selection changes upward (kept in a ref so a new inline callback each
+  // render doesn't re-fire the effect — only an actual selection change does).
+  const onSelectionChangeRef = React.useRef(onSelectionChange)
+  onSelectionChangeRef.current = onSelectionChange
+  React.useEffect(() => {
+    if (!selectable) return
+    onSelectionChangeRef.current?.(
+      table.getSelectedRowModel().rows.map((r) => r.original)
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowSelection, selectable])
+
+  // Clear selection on demand (parent bumps `resetSelectionKey`).
+  React.useEffect(() => {
+    if (resetSelectionKey === undefined) return
+    setRowSelection({})
+  }, [resetSelectionKey])
 
   // Group the rendered rows into ordered sections (Overview). Order follows
   // first appearance; the consumer pre-sorts so each group is contiguous. The

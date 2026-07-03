@@ -3,7 +3,7 @@
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "ui-system";
 
-import type { BillStatus } from "@/lib/bill-row";
+import type { BillStatus } from "@/lib/bill/row";
 import { useBillActions } from "@/hooks/use-bill-actions";
 
 /**

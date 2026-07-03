@@ -13,8 +13,8 @@ import {
 } from "ui-system";
 
 import { useBillTopbar } from "@/app/bill/_components/bill-topbar";
-import type { BillRow } from "@/lib/bill-row";
-import { findDuplicateNumber } from "@/lib/duplicates";
+import type { BillRow } from "@/lib/bill/row";
+import { findDuplicateNumber } from "@/lib/bill/duplicates";
 import { useBillDraft } from "@/stores/bill-draft";
 import { confirmBill, deleteBill } from "../../actions";
 import { persistDraft } from "../../_lib/persist-draft";

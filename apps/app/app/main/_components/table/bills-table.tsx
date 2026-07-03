@@ -3,12 +3,12 @@
 import { useRouter } from "next/navigation";
 import { DataTable } from "ui-system";
 
-import type { BillRow } from "@/lib/bill-row";
-import { categoryRank, CATEGORY_META, STATUS_TO_CATEGORY } from "@/lib/bill-status";
-import { billHref, matchesBillSearch } from "@/lib/bills";
-import { annotateDuplicates } from "@/lib/duplicates";
+import type { BillRow } from "@/lib/bill/row";
+import { categoryRank, CATEGORY_META, STATUS_TO_CATEGORY } from "@/lib/bill/status";
+import { billHref, matchesBillSearch } from "@/lib/bill/bills";
+import { annotateDuplicates } from "@/lib/bill/duplicates";
 import { useBillsView } from "@/stores/bills-view";
-import { ACTION_COLUMN, COLUMN_DEFS } from "./columns";
+import { COLUMN_DEFS } from "./columns";
 
 // Adapter for the DataTable's grouping: a bill's status → { key, label, icon }.
 function billCategory(row: BillRow) {
@@ -32,15 +32,14 @@ export function BillsTable({
   const search = useBillsView((s) => s.search);
   const columnVisibility = useBillsView((s) => s.columnVisibility);
   const columnOrder = useBillsView((s) => s.columnOrder);
+  const setSelectedRows = useBillsView((s) => s.setSelectedRows);
+  const selectionResetKey = useBillsView((s) => s.selectionResetKey);
 
-  // Derived data columns (store is the source of truth for visibility/order),
-  // then the fixed action column pinned last.
-  const columns = [
-    ...columnOrder
-      .filter((key) => columnVisibility[key])
-      .map((key) => COLUMN_DEFS[key]),
-    ACTION_COLUMN,
-  ];
+  // Columns derived entirely from the store (single source of truth for
+  // visibility/order). `action` lives in the catalog too, pinned last.
+  const columns = columnOrder
+    .filter((key) => columnVisibility[key])
+    .map((key) => COLUMN_DEFS[key]);
 
   // Flag duplicates over the loaded set (UI-only), then apply the search.
   const filtered = annotateDuplicates(rows).filter((r) =>
@@ -59,6 +58,9 @@ export function BillsTable({
         columns={columns}
         data={data}
         selectable
+        getRowId={(row) => row.id}
+        onSelectionChange={setSelectedRows}
+        resetSelectionKey={selectionResetKey}
         loading={loading}
         groupBy={grouped ? billCategory : undefined}
         onRowClick={(row) => router.push(billHref(row.id, row.status))}

@@ -1,5 +1,5 @@
-import type { Bill, BillStatus } from "../generated/prisma/client";
-import type { BillRow } from "./bill-row";
+import type { Bill, BillStatus } from "../../generated/prisma/client";
+import type { BillRow } from "./row";
 
 // String literal (not the enum value) so this stays a type-only Prisma import —
 // `lib/bills` is imported by client components and must not pull the runtime.

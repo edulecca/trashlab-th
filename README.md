@@ -34,6 +34,15 @@ apps/web            → the product (Next.js: frontend + API)
 packages/ui-system  → the design system (components + Storybook)
 ```
 
+## Stack
+
+- **Next.js 16** (App Router) · **React 19** · **TypeScript**
+- **Tailwind v4** + **shadcn** (CSS-variable design tokens)
+- **Zustand** (client state) · **TanStack Query** (server cache)
+- **Prisma 7** + **Neon** (Postgres)
+- **Vercel AI SDK** (`ai` + `@ai-sdk/anthropic`) → **Claude**; **pdf-lib** for PDF validation
+- **Storybook 10** (design-system docs)
+
 ## Architecture
 
 **State management (Zustand)** — used in two flows:
@@ -53,10 +62,13 @@ be reused as components get requested one way or another.
 **Tailwind** — the styling layer (utility-first), with the theme driven by CSS-variable
 design tokens shared across the app and the UI System.
 
-**AI — two agents:**
+**AI — two agents** (orchestrated by `/api/extract`, via the Vercel AI SDK):
 
-- a **classifier** that decides whether the uploaded document is actually a bill;
-- an **extractor** that does the extraction.
+- a **classifier** — cheap model (`claude-haiku-4-5`) that decides whether the uploaded
+  document is actually a bill, so junk exits early without spending the expensive call;
+- an **extractor** — strong model (`claude-opus-4-8`) that pulls the structured fields.
+
+Pattern: **cheap model filters, expensive model works.**
 
 **Database** — very simple relations: **User, Vendor, Bill, Line Items, Payment, Payment
 Method** — nothing complex. For persistence I used **Neon** (Postgres), with **Prisma** as

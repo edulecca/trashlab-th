@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { cn } from "ui-system";
 
 /** Two-letter initials from a vendor name, for the avatar fallback. */
@@ -11,7 +14,8 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-/** Circular vendor avatar — the vendor logo if present, else initials fallback. */
+/** Circular vendor avatar — the vendor logo if present (and it loads), else an
+ * initials fallback. A broken/blocked logo URL degrades to initials. */
 export function VendorAvatar({
   name,
   img,
@@ -21,6 +25,9 @@ export function VendorAvatar({
   img: string | null;
   className?: string;
 }) {
+  const [failed, setFailed] = useState(false);
+  const showImg = img && !failed;
+
   return (
     <div
       className={cn(
@@ -28,9 +35,14 @@ export function VendorAvatar({
         className
       )}
     >
-      {img ? (
+      {showImg ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={img} alt="" className="size-full object-cover" />
+        <img
+          src={img}
+          alt=""
+          className="size-full object-cover"
+          onError={() => setFailed(true)}
+        />
       ) : (
         initials(name)
       )}

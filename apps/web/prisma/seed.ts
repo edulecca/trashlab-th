@@ -79,29 +79,68 @@ async function main() {
   });
 
   // --- Vendors -----------------------------------------------------------
+  // Vendor logos via Clearbit; the avatar falls back to initials if one fails.
   const vercel = await prisma.vendor.create({
-    data: { name: "Vercel", email: "ap@vercel.com", address: "San Francisco, CA" },
+    data: {
+      name: "Vercel",
+      email: "ap@vercel.com",
+      address: "San Francisco, CA",
+      img: "https://logo.clearbit.com/vercel.com",
+    },
   });
   const aws = await prisma.vendor.create({
-    data: { name: "Amazon Web Services", email: "billing@aws.com", address: "Seattle, WA" },
+    data: {
+      name: "Amazon Web Services",
+      email: "billing@aws.com",
+      address: "Seattle, WA",
+      img: "https://logo.clearbit.com/aws.amazon.com",
+    },
   });
   const figma = await prisma.vendor.create({
-    data: { name: "Figma", email: "ap@figma.com", address: "San Francisco, CA" },
+    data: {
+      name: "Figma",
+      email: "ap@figma.com",
+      address: "San Francisco, CA",
+      img: "https://logo.clearbit.com/figma.com",
+    },
   });
   const linear = await prisma.vendor.create({
-    data: { name: "Linear", email: "billing@linear.app" },
+    data: {
+      name: "Linear",
+      email: "billing@linear.app",
+      img: "https://logo.clearbit.com/linear.app",
+    },
   });
   const notion = await prisma.vendor.create({
-    data: { name: "Notion Labs", email: "ap@notion.so" },
+    data: {
+      name: "Notion Labs",
+      email: "ap@notion.so",
+      img: "https://logo.clearbit.com/notion.so",
+    },
   });
   const slack = await prisma.vendor.create({
-    data: { name: "Slack", email: "billing@slack.com", address: "San Francisco, CA" },
+    data: {
+      name: "Slack",
+      email: "billing@slack.com",
+      address: "San Francisco, CA",
+      img: "https://logo.clearbit.com/slack.com",
+    },
   });
   const github = await prisma.vendor.create({
-    data: { name: "GitHub", email: "billing@github.com", address: "San Francisco, CA" },
+    data: {
+      name: "GitHub",
+      email: "billing@github.com",
+      address: "San Francisco, CA",
+      img: "https://logo.clearbit.com/github.com",
+    },
   });
   const datadog = await prisma.vendor.create({
-    data: { name: "Datadog", email: "ap@datadoghq.com", address: "New York, NY" },
+    data: {
+      name: "Datadog",
+      email: "ap@datadoghq.com",
+      address: "New York, NY",
+      img: "https://logo.clearbit.com/datadoghq.com",
+    },
   });
 
   // --- Bills (spread across the lifecycle) -------------------------------
@@ -378,6 +417,119 @@ async function main() {
           },
         ],
       },
+    },
+  });
+
+  // ===== Extra history so more vendors show paid/owed on the Vendors page ===
+
+  // Figma — an earlier annual, paid by ACH.
+  const figmaPaidItems = lineItems(
+    [{ description: "Figma Organization — prior term", quantity: 30, unitPrice: 45, type: "EXPENSE", category: "Software" }],
+    0.085
+  );
+  await prisma.bill.create({
+    data: {
+      number: "FIG-2050",
+      status: "PAID",
+      source: "OCR",
+      amount: figmaPaidItems.amount,
+      tax: figmaPaidItems.tax,
+      currency: "USD",
+      invoiceDate: daysFromNow(-45),
+      dueDate: daysFromNow(-15),
+      paymentMethod: "ach",
+      vendorId: figma.id,
+      uploadedById: bruno.id,
+      approvedById: carla.id,
+      lineItems: { create: figmaPaidItems.create },
+      payments: {
+        create: [
+          {
+            amount: figmaPaidItems.amount,
+            status: "PAID",
+            paymentMethodId: ach.id,
+            processedAt: daysFromNow(-14),
+          },
+        ],
+      },
+    },
+  });
+
+  // GitHub — last month's seats, paid by ACH.
+  const githubPaidItems = lineItems([
+    { description: "GitHub Team — 25 seats (prior month)", quantity: 25, unitPrice: 4, type: "EXPENSE", category: "Software" },
+  ]);
+  await prisma.bill.create({
+    data: {
+      number: "GH-3400",
+      status: "PAID",
+      source: "EMAIL",
+      amount: githubPaidItems.amount,
+      tax: githubPaidItems.tax,
+      currency: "USD",
+      invoiceDate: daysFromNow(-38),
+      dueDate: daysFromNow(-8),
+      paymentMethod: "ach",
+      vendorId: github.id,
+      uploadedById: ana.id,
+      approvedById: carla.id,
+      lineItems: { create: githubPaidItems.create },
+      payments: {
+        create: [
+          {
+            amount: githubPaidItems.amount,
+            status: "PAID",
+            paymentMethodId: ach.id,
+            processedAt: daysFromNow(-7),
+          },
+        ],
+      },
+    },
+  });
+
+  // Notion — approved, still owed.
+  const notionApprovedItems = lineItems([
+    { description: "Notion Business — 30 seats", quantity: 30, unitPrice: 15, type: "EXPENSE", category: "Software" },
+  ]);
+  await prisma.bill.create({
+    data: {
+      number: "NOT-2210",
+      status: "APPROVED",
+      source: "EMAIL",
+      amount: notionApprovedItems.amount,
+      tax: notionApprovedItems.tax,
+      currency: "USD",
+      invoiceDate: daysFromNow(-7),
+      dueDate: daysFromNow(14),
+      paymentMethod: "ach",
+      vendorId: notion.id,
+      uploadedById: ana.id,
+      approvedById: carla.id,
+      lineItems: { create: notionApprovedItems.create },
+    },
+  });
+
+  // Datadog — approved infra, still owed; paid by check when released.
+  const datadogApprovedItems = lineItems(
+    [{ description: "Datadog Infra — 40 hosts", quantity: 40, unitPrice: 23, type: "EXPENSE", category: "Infrastructure" }],
+    0.085
+  );
+  await prisma.bill.create({
+    data: {
+      number: "DD-9001",
+      status: "APPROVED",
+      source: "OCR",
+      amount: datadogApprovedItems.amount,
+      tax: datadogApprovedItems.tax,
+      currency: "USD",
+      invoiceDate: daysFromNow(-6),
+      dueDate: daysFromNow(12),
+      file: invoicePdfA,
+      paymentMethod: "check",
+      vendorId: datadog.id,
+      uploadedById: bruno.id,
+      approvedById: carla.id,
+      lineItems: { create: datadogApprovedItems.create },
     },
   });
 

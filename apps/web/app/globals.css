@@ -1,4 +1,6 @@
-/* Design system theme (tokens, base layer, Tailwind) lives in ui-system. */
+/* Design system theme (tokens, base layer, Tailwind) lives in ui-system.
+   Both directives use relative paths: @source must be a path (it's a filesystem
+   glob, not module resolution), so @import is kept a path too for consistency. */
 @import "../../../packages/ui-system/src/styles/globals.css";
 
 /* Tailwind ignores node_modules by default — scan the design-system source

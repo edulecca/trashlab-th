@@ -122,7 +122,7 @@ async function main() {
     },
   });
 
-  // NEEDS_REVIEW — OCR-ingested, past due => derives as OVERDUE.
+  // DRAFT — OCR-ingested, past due => derives as OVERDUE.
   const reviewItems = lineItems(
     [
       { description: "Figma Organization — annual", quantity: 30, unitPrice: 45, type: "EXPENSE", category: "Software" },
@@ -132,7 +132,7 @@ async function main() {
   await prisma.bill.create({
     data: {
       number: "FIG-2043",
-      status: "NEEDS_REVIEW",
+      status: "DRAFT",
       source: "OCR",
       amount: reviewItems.amount,
       tax: reviewItems.tax,
@@ -190,7 +190,7 @@ async function main() {
     },
   });
 
-  // SCHEDULED — approved and a payment is in flight (PROCESSING).
+  // APPROVED — approved and a payment is in flight (PROCESSING).
   const scheduledItems = lineItems(
     [
       { description: "EC2 compute", quantity: 1, unitPrice: 6200.5, type: "EXPENSE", category: "Infrastructure" },
@@ -202,7 +202,7 @@ async function main() {
   await prisma.bill.create({
     data: {
       number: "AWS-2042",
-      status: "SCHEDULED",
+      status: "APPROVED",
       source: "CSV",
       amount: scheduledItems.amount,
       tax: scheduledItems.tax,

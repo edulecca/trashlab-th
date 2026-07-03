@@ -18,6 +18,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Columns3, GripVertical } from "lucide-react";
 import { Checkbox, Popover, PopoverContent, PopoverTrigger } from "ui-system";
 
+import { IconButton } from "@/components/icon-button";
 import { COLUMNS, useBillsView, type ColumnKey } from "@/stores/bills-view";
 
 const label = (key: ColumnKey) =>
@@ -81,11 +82,10 @@ export function ColumnsMenu() {
 
   return (
     <Popover>
-      <PopoverTrigger
-        aria-label="Columns"
-        className="grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[state=open]:bg-muted-foreground/40 data-[state=open]:text-foreground"
-      >
-        <Columns3 className="size-4" />
+      <PopoverTrigger asChild>
+        <IconButton aria-label="Columns">
+          <Columns3 className="size-4" />
+        </IconButton>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64 p-1.5">
         {/* Locked column: always visible, not draggable. */}

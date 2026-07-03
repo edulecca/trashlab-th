@@ -1,7 +1,9 @@
 "use client";
 
+import * as React from "react";
 import { Search } from "lucide-react";
-import { cn } from "ui-system";
+
+import { cn } from "../../lib/utils";
 
 type Size = "lg" | "sm";
 
@@ -12,7 +14,7 @@ const SIZES: Record<Size, { wrap: string; icon: string; input: string }> = {
   sm: { wrap: "h-9 gap-2", icon: "size-4", input: "text-sm" },
 };
 
-type SearchFieldProps = {
+export type SearchFieldProps = {
   value?: string;
   onValueChange?: (value: string) => void;
   size?: Size;

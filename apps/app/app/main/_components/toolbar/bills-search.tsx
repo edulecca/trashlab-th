@@ -1,6 +1,6 @@
 "use client";
 
-import { SearchField } from "@/components/search-field";
+import { SearchField } from "ui-system";
 import { useBillsView } from "@/stores/bills-view";
 
 /**

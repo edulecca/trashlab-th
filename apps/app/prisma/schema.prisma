@@ -17,10 +17,8 @@ datasource db {
 /// Bill lifecycle state machine. OVERDUE is derived, never stored.
 enum BillStatus {
   DRAFT
-  NEEDS_REVIEW
   REVIEWED
   APPROVED
-  SCHEDULED
   PAID
   FAILED
 }

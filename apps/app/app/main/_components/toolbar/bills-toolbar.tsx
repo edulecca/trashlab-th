@@ -2,6 +2,7 @@
 
 import { CalendarDays, Download, ListFilter } from "lucide-react";
 
+import { IconButton } from "@/components/icon-button";
 import { BillsSearch } from "./bills-search";
 import { ColumnsMenu } from "./columns-menu";
 import { OptionsMenu } from "./options-menu";
@@ -15,16 +16,14 @@ function PlaceholderIcon({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
+    <IconButton
       disabled
       aria-disabled="true"
       aria-label={`${label} (coming soon)`}
       title="Coming soon"
-      className="grid size-9 cursor-not-allowed place-items-center rounded-full text-muted-foreground/50"
     >
       {children}
-    </button>
+    </IconButton>
   );
 }
 

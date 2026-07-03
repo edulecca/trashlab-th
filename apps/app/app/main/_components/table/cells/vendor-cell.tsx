@@ -1,5 +1,7 @@
 import { ListItem } from "ui-system";
 
+import { formatDate } from "@/lib/format";
+
 /** Two-letter initials from a vendor name, for the avatar fallback. */
 function initials(name: string) {
   return name
@@ -24,15 +26,7 @@ function VendorAvatar({ name, img }: { name: string; img: string | null }) {
   );
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  });
-}
-
-export type VendorElementRowProps = {
+export type VendorCellProps = {
   vendor: string;
   img: string | null;
   uploadedBy: string;
@@ -44,12 +38,12 @@ export type VendorElementRowProps = {
  * initials fallback), the vendor name, and — underneath — who uploaded the
  * bill and when.
  */
-export function VendorElementRow({
+export function VendorCell({
   vendor,
   img,
   uploadedBy,
   uploadedAt,
-}: VendorElementRowProps) {
+}: VendorCellProps) {
   return (
     <ListItem
       className="gap-3 px-0 py-0"

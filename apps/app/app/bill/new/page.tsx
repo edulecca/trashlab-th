@@ -1,26 +1,13 @@
-import { prisma } from "@/lib/prisma";
+import { SearchField } from "ui-system";
 
-import { SearchField } from "@/components/search-field";
+import { formatDate, money } from "@/lib/format";
+import { prisma } from "@/lib/prisma";
 
 import { BillForm } from "./_components/bill-form";
 import { DocumentPreview } from "./_components/document-preview";
 import { ResizableColumns } from "./_components/resizable-columns";
 
 export const dynamic = "force-dynamic";
-
-function money(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
-    amount
-  );
-}
-
-function shortDate(d: Date) {
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  });
-}
 
 export default async function NewBillPage() {
   // Data for the left rail. The rail component itself lands later from ui-system;
@@ -52,7 +39,7 @@ export default async function NewBillPage() {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {money(Number(b.amount), b.currency)} · Due{" "}
-                    {shortDate(b.dueDate)}
+                    {formatDate(b.dueDate)}
                   </p>
                 </div>
               </li>

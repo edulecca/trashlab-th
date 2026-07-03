@@ -190,3 +190,41 @@ Registro cronológico de decisiones y trabajo, para luego volcarlo al README / e
 - Archivado → `archive/2026-07-02-add-bill-tax`; specs sincronizados vía `openspec archive`: `bill-tax`
   creado (+2), `billpay-data-model` / `ai-bill-extraction` / `bill-draft-persistence` actualizados
   (~3 MODIFIED). `openspec validate --all` → 7 passed, 0 failed. No quedan changes activos.
+
+### Design system: Input / Textarea estilo Ramp (label dentro de la caja)
+- Empezamos por shadcn puro (`npx shadcn add field input textarea`), pero el `Field` de shadcn pone el
+  **label afuera/arriba** — no matchea la referencia de Ramp (label **dentro** de la caja).
+- Reconciliación: se extendieron los `Input`/`Textarea` de shadcn con una variante **enmarcada** — cuando
+  reciben `label` (o accessory) rinden la caja Ramp: **60px fija**, esquinas **cuadradas** (`rounded-none`),
+  label adentro (13px, muted), valor `text-xl`, `leftAccessory`/`rightAccessory`, foco en toda la caja,
+  `invalid`/`disabled`. Sin `label` caen al input/textarea plano de shadcn (compacto), para line items y tax.
+- Se borró el `Field`/`FieldLabel`/`Label`/`Separator` de shadcn (código muerto, patrón label-afuera que
+  confundía) — queda un solo patrón coherente. Stories `Input`/`Textarea` en Storybook.
+- `bill-form.tsx` cableado a `Input label=…` / `Textarea label=…` (sin wrappers Field); line items rehechos
+  como **tabla cuadrada** (header Description/Price + celdas borderless + "Add line item" full-width);
+  badge "Draft" inline al lado del título.
+- `/main`: celda Vendor extraída a `VendorElementRow` (`ListItem` del DS): **avatar circular** (img o
+  iniciales fallback) + nombre del vendor + `uploader · fecha`. Tabla full-width, sin card/borde externo.
+
+### OpenSpec change: `add-bills-status-tabs` (propuesto + implementado + archivado)
+- Feature: `/main` interactivo con **tabs de status** sobre la tabla, fetch client-side con **TanStack Query**.
+- Nuevo estado **`REVIEWED`** en `BillStatus` (`NEEDS_REVIEW → REVIEWED → APPROVED`); migración
+  `bill_status_reviewed`, seed con 1 bill REVIEWED (VER-3088) → 7 bills, uno por estado. La lógica compara
+  por nombre, no por ordinal del enum.
+- **RQ**: `@tanstack/react-query` + `QueryProvider` (client, `QueryClient` estable, `staleTime` 30s) en
+  `RootLayout`.
+- **Fuente de verdad del row**: `lib/bill-row.ts` (`BillRow` + `toBillRow`, overdue derivado) compartido por
+  API y tabla. **API**: `GET /api/bills?status=…` (param repetible, valida contra el enum, sin param = todo).
+  **Hook**: `hooks/use-bills.ts` `useBills({ status })`, normaliza a array ordenado, key `["bills", sorted]`.
+- **UI**: `bills-view.tsx` (isla cliente) con tabs Overview / Draft (`DRAFT`+`NEEDS_REVIEW`) / For Approval
+  (`REVIEWED`) / For Payment (`APPROVED`), sincronizados a `?tab=` (fallback Overview); tabla via `useBills`
+  con loading/empty; `page.tsx` ya no toca Prisma. Badge `Reviewed` agregado.
+- Verificación: `tsc` limpio; API por curl (all→7 estados, `?status=REVIEWED`→VER-3088, multi
+  `DRAFT&NEEDS_REVIEW`→2, `BOGUS`→ignora, overdue derivado OK); `/main` 200 con los 4 tabs y deep-link
+  `?tab=approval` 200. Click-through visual no ejercitado (extensión de Chrome sin conectar); filtrado
+  verificado en la capa de datos.
+- **Gotcha**: la API tiraba 500 en queries que incluían el bill REVIEWED — el dev server corría con el
+  cliente Prisma pre-migración. Se resolvió matando procesos `next` viejos + `rm -rf .next` + restart.
+- Archivado → `archive/2026-07-03-add-bills-status-tabs`; specs: `bills-api` (+2) y `bills-list-tabs` (+3)
+  creados, `billpay-data-model` / `demo-seed-data` actualizados (~2 MODIFIED). `openspec validate --all`
+  → 9 passed, 0 failed. No quedan changes activos.

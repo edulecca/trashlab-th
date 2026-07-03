@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { Badge } from "./badge";
+import { Badge } from "../components/ui/badge";
 import {
   Table,
   TableBody,
@@ -8,7 +8,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./table";
+} from "../components/ui/table";
 
 const meta = {
   title: "Components/Table",

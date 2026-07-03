@@ -4,7 +4,7 @@ import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "./resizable";
+} from "../components/ui/resizable";
 
 type ResizableDemoProps = {
   orientation?: "horizontal" | "vertical";

@@ -1,13 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Columns3, GripVertical } from "lucide-react";
 
-import { Button } from "./button";
-import { Checkbox } from "./checkbox";
+import { Button } from "../components/ui/button";
+import { Checkbox } from "../components/ui/checkbox";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "./popover";
+} from "../components/ui/popover";
 
 const meta = {
   title: "Components/Popover",

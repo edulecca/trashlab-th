@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Calendar, Network } from "lucide-react";
 
-import { Input } from "./input";
+import { Input } from "../components/ui/input";
 
 const meta = {
   title: "Components/Input",

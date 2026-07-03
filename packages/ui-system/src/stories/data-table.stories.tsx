@@ -2,9 +2,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 
-import { Badge } from "./badge";
-import { Button } from "./button";
-import { DataTable } from "./data-table";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import { DataTable } from "../components/ui/data-table";
 
 type BillStatus = "Needs review" | "Scheduled" | "Paid" | "Overdue";
 

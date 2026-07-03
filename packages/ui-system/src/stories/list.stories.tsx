@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Landmark, Store } from "lucide-react";
 
-import { List, ListItem } from "./list";
+import { List, ListItem } from "../components/ui/list";
 
 type Bill = { id: string; vendor: string; person: string; date: string };
 

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ChevronDown, FilterX, RotateCcw } from "lucide-react";
 
-import { Button } from "./button";
+import { Button } from "../components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "./dropdown-menu";
+} from "../components/ui/dropdown-menu";
 
 const meta = {
   title: "Components/DropdownMenu",

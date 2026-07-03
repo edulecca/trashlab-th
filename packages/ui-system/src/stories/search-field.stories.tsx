@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
-import { SearchField } from "./search-field";
+import { SearchField } from "../components/ui/search-field";
 
 const meta = {
   title: "Components/SearchField",

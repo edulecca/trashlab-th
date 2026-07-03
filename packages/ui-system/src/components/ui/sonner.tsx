@@ -40,6 +40,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast: "cn-toast",
+          // Success toast uses the theme's green success token (matches Badge).
+          success:
+            "!bg-success !text-success-foreground !border-success-foreground/25",
         },
       }}
       {...props}

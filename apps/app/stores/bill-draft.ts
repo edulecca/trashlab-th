@@ -10,6 +10,7 @@
 import { create } from "zustand";
 
 import type { ExtractionData } from "@/lib/ai/schema";
+import { DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
 
 export type DraftStatus = "idle" | "extracting" | "ready" | "error";
 
@@ -26,6 +27,7 @@ export type DraftForm = {
   currency: string;
   description: string;
   tax: string; // grand-total tax, kept as a string to keep the input controlled
+  paymentMethod: string; // chosen method slug (ach / check)
 };
 
 const EMPTY_FORM: DraftForm = {
@@ -37,6 +39,7 @@ const EMPTY_FORM: DraftForm = {
   currency: "",
   description: "",
   tax: "0",
+  paymentMethod: DEFAULT_PAYMENT_METHOD,
 };
 
 const EMPTY_ITEM: DraftLineItem = { description: "", amount: "" };
@@ -51,6 +54,7 @@ function formFromExtraction(data: ExtractionData): DraftForm {
     currency: data.bill.currency ?? "",
     description: data.bill.description ?? "",
     tax: data.bill.tax != null ? String(data.bill.tax) : "0",
+    paymentMethod: DEFAULT_PAYMENT_METHOD,
   };
 }
 
@@ -67,15 +71,22 @@ type BillDraftState = {
   lineItems: DraftLineItem[];
   status: DraftStatus;
   error: string | null;
+  /** The uploaded PDF (held during review, persisted as Bill.file on save). */
   file: File | null;
+  /** Object URL for previewing the uploaded PDF; created/revoked by the uploader. */
+  fileUrl: string | null;
+  /** The persisted bill's id once saved (null until the draft hits the DB). */
+  billId: string | null;
 
   setField: (key: keyof DraftForm, value: string) => void;
   setLineItem: (index: number, key: keyof DraftLineItem, value: string) => void;
   addLineItem: () => void;
   removeLineItem: (index: number) => void;
   setFile: (file: File | null) => void;
+  setFileUrl: (url: string | null) => void;
   setStatus: (status: DraftStatus) => void;
   setError: (message: string | null) => void;
+  setPersisted: (id: string) => void;
   loadExtraction: (data: ExtractionData) => void;
   reset: () => void;
 };
@@ -86,6 +97,8 @@ export const useBillDraft = create<BillDraftState>((set) => ({
   status: "idle",
   error: null,
   file: null,
+  fileUrl: null,
+  billId: null,
 
   setField: (key, value) => set((s) => ({ form: { ...s.form, [key]: value } })),
   setLineItem: (index, key, value) =>
@@ -102,8 +115,10 @@ export const useBillDraft = create<BillDraftState>((set) => ({
       return { lineItems: next.length > 0 ? next : [{ ...EMPTY_ITEM }] };
     }),
   setFile: (file) => set({ file }),
+  setFileUrl: (fileUrl) => set({ fileUrl }),
   setStatus: (status) => set({ status }),
   setError: (message) => set({ error: message }),
+  setPersisted: (id) => set({ billId: id }),
   loadExtraction: (data) =>
     set({
       form: formFromExtraction(data),
@@ -118,5 +133,7 @@ export const useBillDraft = create<BillDraftState>((set) => ({
       status: "idle",
       error: null,
       file: null,
+      fileUrl: null,
+      billId: null,
     }),
 }));

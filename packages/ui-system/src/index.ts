@@ -9,13 +9,11 @@ export {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuGroup,
 } from "./components/ui/dropdown-menu";
 export {
   Popover,
   PopoverTrigger,
   PopoverContent,
-  PopoverAnchor,
 } from "./components/ui/popover";
 export { Input, type InputProps } from "./components/ui/input";
 export { Textarea, type TextareaProps } from "./components/ui/textarea";

@@ -1,4 +1,5 @@
 import type { BillStatus } from "./bill-row";
+import { DEFAULT_PAYMENT_METHOD } from "./payment-methods";
 import { prisma } from "./prisma";
 
 /** A read-only line item as the view form renders it (description + amount). */
@@ -17,6 +18,7 @@ export type BillViewData = {
   dueDate: string; // yyyy-mm-dd
   tax: string;
   description: string;
+  paymentMethod: string;
   hasFile: boolean;
   lineItems: BillViewLineItem[];
 };
@@ -56,6 +58,7 @@ export async function getBillView(id: string): Promise<BillViewData | null> {
     dueDate: isoDate(bill.dueDate),
     tax: String(bill.tax),
     description: bill.memo ?? "",
+    paymentMethod: bill.paymentMethod ?? DEFAULT_PAYMENT_METHOD,
     hasFile: flag?.hasFile ?? false,
     lineItems: bill.lineItems.map((li) => ({
       description: li.description,

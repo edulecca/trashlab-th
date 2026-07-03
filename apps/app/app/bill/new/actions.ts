@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma, type BillStatus } from "@/generated/prisma/client";
 import { findOrCreateVendor } from "@/lib/vendors";
+import { DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
 
 /**
  * Persist the reviewed bill draft. The PDF blob (held in the client draft store
@@ -54,40 +55,129 @@ export async function saveDraft(fd: FormData) {
   // Reuse the vendor from the scan (or an earlier bill) — deduped by name + email.
   const vendor = await findOrCreateVendor(vendorName, vendorEmail);
 
-  const bill = await prisma.bill.create({
-    data: {
-      number: number || "DRAFT",
-      status: "DRAFT",
-      source: bytes ? "OCR" : "MANUAL",
-      amount: new Prisma.Decimal(total),
-      tax: new Prisma.Decimal(taxNum),
-      currency,
-      invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
-      dueDate: dueDate ? new Date(dueDate) : new Date(),
-      file: bytes,
-      memo: description || null,
-      vendorId: vendor.id,
-      uploadedById: user.id,
-      // One BillLineItem per reviewed row; quantity flattened to 1 for the MVP.
-      lineItems: {
-        create: items.map((it, order) => {
-          const price = new Prisma.Decimal(it.price);
-          return {
-            description: it.description || "Item",
-            quantity: new Prisma.Decimal(1),
-            unitPrice: price,
-            total: price,
-            type: "EXPENSE" as const,
-            order,
-          };
-        }),
-      },
-    },
+  // One BillLineItem per reviewed row; quantity flattened to 1 for the MVP.
+  const lineItemsCreate = items.map((it, order) => {
+    const price = new Prisma.Decimal(it.price);
+    return {
+      description: it.description || "Item",
+      quantity: new Prisma.Decimal(1),
+      unitPrice: price,
+      total: price,
+      type: "EXPENSE" as const,
+      order,
+    };
   });
+
+  const shared = {
+    number: number || "DRAFT",
+    amount: new Prisma.Decimal(total),
+    tax: new Prisma.Decimal(taxNum),
+    currency,
+    invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
+    dueDate: dueDate ? new Date(dueDate) : new Date(),
+    memo: description || null,
+    paymentMethod: get("paymentMethod") || DEFAULT_PAYMENT_METHOD,
+    vendorId: vendor.id,
+  };
+
+  // Upsert: update the existing draft in place, else create a new one. Status
+  // is never touched here — transitions go through approveBill / payBill.
+  const billId = get("billId");
+  const bill = billId
+    ? await prisma.bill.update({
+        where: { id: billId },
+        data: {
+          ...shared,
+          // Only overwrite the stored PDF when a new one is provided.
+          ...(bytes ? { file: bytes } : {}),
+          lineItems: { deleteMany: {}, create: lineItemsCreate },
+        },
+      })
+    : await prisma.bill.create({
+        data: {
+          ...shared,
+          status: "DRAFT",
+          source: bytes ? "OCR" : "MANUAL",
+          file: bytes,
+          uploadedById: user.id,
+          lineItems: { create: lineItemsCreate },
+        },
+      });
 
   // Refresh the bill lists that read from the DB.
   revalidatePath("/main");
   revalidatePath("/bill/new");
+  revalidatePath(`/bill/view/${bill.id}`);
 
   return { id: bill.id, hasFile: bytes !== null };
+}
+
+function revalidateBill(id: string) {
+  revalidatePath("/main");
+  revalidatePath(`/bill/view/${id}`);
+}
+
+/**
+ * Advance a bill from one status to the next in a single guarded write: the
+ * `where` clause enforces the source status, so `count === 0` means the bill is
+ * missing or not in the expected state.
+ */
+async function transition(
+  id: string,
+  from: BillStatus,
+  to: BillStatus,
+  extra: Prisma.BillUncheckedUpdateManyInput = {}
+) {
+  const { count } = await prisma.bill.updateMany({
+    where: { id, status: from },
+    data: { status: to, ...extra },
+  });
+  if (count === 0) throw new Error(`Cannot move bill to ${to}.`);
+  revalidateBill(id);
+}
+
+/** DRAFT → REVIEWED. Fields are saved by `saveDraft` just before this. */
+export async function confirmBill(id: string) {
+  await transition(id, "DRAFT", "REVIEWED");
+}
+
+/** REVIEWED → APPROVED (a separate approval step, possibly a different role). */
+export async function approveBill(id: string) {
+  const approver = await prisma.user.findFirst({ select: { id: true } });
+  await transition(id, "REVIEWED", "APPROVED", {
+    approvedById: approver?.id ?? null,
+  });
+}
+
+/** APPROVED → PAID. Records a Payment with the bill's chosen method. */
+export async function payBill(id: string) {
+  const bill = await prisma.bill.findUnique({
+    where: { id },
+    select: { status: true, amount: true, paymentMethod: true },
+  });
+  if (!bill) throw new Error("Bill not found.");
+  if (bill.status !== "APPROVED")
+    throw new Error(`Cannot pay a ${bill.status} bill.`);
+
+  const slug = bill.paymentMethod ?? DEFAULT_PAYMENT_METHOD;
+  const method = await prisma.paymentMethod.findUnique({
+    where: { slug },
+    select: { id: true },
+  });
+  if (!method) throw new Error(`Unknown payment method: ${slug}`);
+
+  await prisma.$transaction([
+    prisma.payment.create({
+      data: {
+        billId: id,
+        paymentMethodId: method.id,
+        amount: bill.amount,
+        status: "PAID",
+        processedAt: new Date(),
+      },
+    }),
+    prisma.bill.update({ where: { id }, data: { status: "PAID" } }),
+  ]);
+
+  revalidateBill(id);
 }

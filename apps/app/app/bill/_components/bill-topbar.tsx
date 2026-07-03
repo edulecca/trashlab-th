@@ -8,7 +8,8 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
-import { ArrowLeft, PanelLeft } from "lucide-react";
+import { ArrowLeft, PanelLeft, Plus } from "lucide-react";
+import { Button } from "ui-system";
 
 import { useRailToggle } from "@/components/rail-toggle";
 import { VendorAvatar } from "@/components/vendor-avatar";
@@ -97,6 +98,15 @@ export function BillTopbar() {
           </span>
         </div>
       ) : null}
+
+      <div className="ml-auto px-4">
+        <Button asChild size="md">
+          <Link href="/bill/new">
+            <Plus data-icon="inline-start" />
+            New Bill
+          </Link>
+        </Button>
+      </div>
     </header>
   );
 }

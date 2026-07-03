@@ -1,8 +1,10 @@
 import { Badge } from "ui-system";
 
 import { BillTopbarSetter } from "@/app/bill/_components/bill-topbar";
+import { BillActionBar } from "./bill-action-bar";
 import { DetailsSection } from "@/app/bill/new/_components/form/details-section";
 import { LineItemsEditor } from "@/app/bill/new/_components/form/line-items-editor";
+import { PaymentMethodSection } from "@/app/bill/new/_components/form/payment-method-section";
 import { TotalsSummary } from "@/app/bill/new/_components/form/totals-summary";
 import { VendorSection } from "@/app/bill/new/_components/form/vendor-section";
 import { BillsRail } from "@/components/bills-rail";
@@ -33,6 +35,7 @@ export function BillView({
     currency: bill.currency,
     description: bill.description,
     tax: bill.tax,
+    paymentMethod: bill.paymentMethod,
   };
 
   const status = STATUS_DISPLAY[bill.status];
@@ -75,7 +78,12 @@ export function BillView({
               disabled
             />
           </section>
+
+          <PaymentMethodSection value={bill.paymentMethod} disabled />
         </div>
+
+        {/* Sticky action bar — same pattern as the create-flow footer. */}
+        <BillActionBar billId={bill.id} status={bill.status} />
       </div>
     </ResizableColumns>
   );

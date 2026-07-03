@@ -58,14 +58,12 @@ async function main() {
   await prisma.user.deleteMany();
 
   // --- Payment method catalog --------------------------------------------
-  // Catalog of four methods; `card` is created for completeness even though
-  // the seeded payments below only exercise ach / check / wire.
-  const [ach, check, wire] = await Promise.all(
+  // The two methods the app offers (see PaymentMethodSection). A bill picks one
+  // via `Bill.paymentMethod` (slug); Payments link to the PaymentMethod row.
+  const [ach, check] = await Promise.all(
     [
       { slug: "ach", description: "ACH bank transfer" },
       { slug: "check", description: "Paper check" },
-      { slug: "wire", description: "Wire transfer" },
-      { slug: "card", description: "Corporate card" },
     ].map((data) => prisma.paymentMethod.create({ data }))
   );
 
@@ -99,11 +97,22 @@ async function main() {
   const slack = await prisma.vendor.create({
     data: { name: "Slack", email: "billing@slack.com", address: "San Francisco, CA" },
   });
+  const github = await prisma.vendor.create({
+    data: { name: "GitHub", email: "billing@github.com", address: "San Francisco, CA" },
+  });
+  const datadog = await prisma.vendor.create({
+    data: { name: "Datadog", email: "ap@datadoghq.com", address: "New York, NY" },
+  });
 
-  // --- Bills (one per status) --------------------------------------------
+  // --- Bills (spread across the lifecycle) -------------------------------
+  // `paymentMethod` (ach/check) is the method chosen for the bill — shown on the
+  // bill view and used at Pay. Payments exist only for PAID/FAILED bills: the app
+  // creates a Payment at Pay time, so DRAFT/REVIEWED/APPROVED have none.
 
-  // DRAFT — just uploaded, not yet reviewed.
-  const draftItems = lineItems([
+  // ===== Ready for review (DRAFT) =======================================
+
+  // Just uploaded, not yet reviewed.
+  const notionItems = lineItems([
     { description: "Notion Plus — 12 seats", quantity: 12, unitPrice: 8, type: "EXPENSE", category: "Software" },
   ]);
   await prisma.bill.create({
@@ -111,43 +120,66 @@ async function main() {
       number: "NOT-1090",
       status: "DRAFT",
       source: "MANUAL",
-      amount: draftItems.amount,
-      tax: draftItems.tax,
+      amount: notionItems.amount,
+      tax: notionItems.tax,
       currency: "USD",
       invoiceDate: daysFromNow(-3),
       dueDate: daysFromNow(25),
+      paymentMethod: "ach",
       vendorId: notion.id,
       uploadedById: ana.id,
-      lineItems: { create: draftItems.create },
+      lineItems: { create: notionItems.create },
     },
   });
 
-  // DRAFT — OCR-ingested, past due => derives as OVERDUE.
-  const reviewItems = lineItems(
-    [
-      { description: "Figma Organization — annual", quantity: 30, unitPrice: 45, type: "EXPENSE", category: "Software" },
-    ],
-    0.085 // 8.5% sales tax
+  // OCR-ingested, past due => derives as OVERDUE.
+  const figmaItems = lineItems(
+    [{ description: "Figma Organization — annual", quantity: 30, unitPrice: 45, type: "EXPENSE", category: "Software" }],
+    0.085
   );
   await prisma.bill.create({
     data: {
       number: "FIG-2043",
       status: "DRAFT",
       source: "OCR",
-      amount: reviewItems.amount,
-      tax: reviewItems.tax,
+      amount: figmaItems.amount,
+      tax: figmaItems.tax,
       currency: "USD",
       invoiceDate: daysFromNow(-40),
       dueDate: daysFromNow(-5), // past due, not paid => overdue
       file: invoicePdfA,
+      paymentMethod: "ach",
       vendorId: figma.id,
       uploadedById: bruno.id,
-      lineItems: { create: reviewItems.create },
+      lineItems: { create: figmaItems.create },
     },
   });
 
-  // REVIEWED — reviewed, waiting for approval (no approver yet).
-  const reviewedItems = lineItems([
+  // Small, just landed by email.
+  const githubItems = lineItems([
+    { description: "GitHub Team — 25 seats", quantity: 25, unitPrice: 4, type: "EXPENSE", category: "Software" },
+  ]);
+  await prisma.bill.create({
+    data: {
+      number: "GH-3312",
+      status: "DRAFT",
+      source: "EMAIL",
+      amount: githubItems.amount,
+      tax: githubItems.tax,
+      currency: "USD",
+      invoiceDate: daysFromNow(-1),
+      dueDate: daysFromNow(29),
+      paymentMethod: "ach",
+      vendorId: github.id,
+      uploadedById: ana.id,
+      lineItems: { create: githubItems.create },
+    },
+  });
+
+  // ===== Awaiting approval (REVIEWED) ===================================
+
+  // Reviewed, waiting for approval (no approver yet).
+  const vercelReviewItems = lineItems([
     { description: "Vercel Pro — 8 seats", quantity: 8, unitPrice: 20, type: "EXPENSE", category: "Software" },
   ]);
   await prisma.bill.create({
@@ -155,20 +187,49 @@ async function main() {
       number: "VER-3088",
       status: "REVIEWED",
       source: "EMAIL",
-      amount: reviewedItems.amount,
-      tax: reviewedItems.tax,
+      amount: vercelReviewItems.amount,
+      tax: vercelReviewItems.tax,
       currency: "USD",
       invoiceDate: daysFromNow(-5),
       dueDate: daysFromNow(20),
       file: invoicePdfB,
+      paymentMethod: "ach",
       vendorId: vercel.id,
       uploadedById: bruno.id,
-      lineItems: { create: reviewedItems.create },
+      lineItems: { create: vercelReviewItems.create },
     },
   });
 
-  // APPROVED — reviewed and approved, not yet scheduled.
-  const approvedItems = lineItems([
+  // Larger infra bill with tax; method set to check.
+  const datadogItems = lineItems(
+    [
+      { description: "Datadog APM — 40 hosts", quantity: 40, unitPrice: 31, type: "EXPENSE", category: "Infrastructure" },
+      { description: "Log management", quantity: 1, unitPrice: 900, type: "EXPENSE", category: "Infrastructure" },
+    ],
+    0.085
+  );
+  await prisma.bill.create({
+    data: {
+      number: "DD-8842",
+      status: "REVIEWED",
+      source: "OCR",
+      amount: datadogItems.amount,
+      tax: datadogItems.tax,
+      currency: "USD",
+      invoiceDate: daysFromNow(-4),
+      dueDate: daysFromNow(11),
+      file: invoicePdfA,
+      paymentMethod: "check",
+      vendorId: datadog.id,
+      uploadedById: ana.id,
+      lineItems: { create: datadogItems.create },
+    },
+  });
+
+  // ===== Ready for release (APPROVED + FAILED) ==========================
+
+  // Approved, ready to pay by ACH; no payment yet.
+  const linearItems = lineItems([
     { description: "Linear — 40 seats", quantity: 40, unitPrice: 8, type: "EXPENSE", category: "Software" },
     { description: "Onboarding setup", quantity: 1, unitPrice: 150, type: "ITEM", category: "Services" },
   ]);
@@ -177,57 +238,84 @@ async function main() {
       number: "LIN-5521",
       status: "APPROVED",
       source: "EMAIL",
-      amount: approvedItems.amount,
-      tax: approvedItems.tax,
+      amount: linearItems.amount,
+      tax: linearItems.tax,
       currency: "USD",
       invoiceDate: daysFromNow(-8),
       dueDate: daysFromNow(15),
       file: invoicePdfB,
+      paymentMethod: "ach",
       vendorId: linear.id,
       uploadedById: ana.id,
       approvedById: carla.id,
-      lineItems: { create: approvedItems.create },
+      lineItems: { create: linearItems.create },
     },
   });
 
-  // APPROVED — approved and a payment is in flight (PROCESSING).
-  const scheduledItems = lineItems(
+  // Approved infra bill, chosen method = check; no payment yet.
+  const awsItems = lineItems(
     [
       { description: "EC2 compute", quantity: 1, unitPrice: 6200.5, type: "EXPENSE", category: "Infrastructure" },
       { description: "S3 storage", quantity: 1, unitPrice: 1430, type: "EXPENSE", category: "Infrastructure" },
       { description: "Data transfer", quantity: 1, unitPrice: 800, type: "EXPENSE", category: "Infrastructure" },
     ],
-    0.085 // 8.5% sales tax
+    0.085
   );
   await prisma.bill.create({
     data: {
       number: "AWS-2042",
       status: "APPROVED",
       source: "CSV",
-      amount: scheduledItems.amount,
-      tax: scheduledItems.tax,
+      amount: awsItems.amount,
+      tax: awsItems.tax,
       currency: "USD",
       invoiceDate: daysFromNow(-6),
       dueDate: daysFromNow(9),
       file: invoicePdfA,
+      paymentMethod: "check",
       vendorId: aws.id,
       uploadedById: bruno.id,
       approvedById: carla.id,
-      lineItems: { create: scheduledItems.create },
+      lineItems: { create: awsItems.create },
+    },
+  });
+
+  // A payment attempt failed. Past due => overdue.
+  const slackItems = lineItems([
+    { description: "Slack Business+ — 60 seats", quantity: 60, unitPrice: 15, type: "EXPENSE", category: "Software" },
+  ]);
+  await prisma.bill.create({
+    data: {
+      number: "SLK-7781",
+      status: "FAILED",
+      source: "EMAIL",
+      amount: slackItems.amount,
+      tax: slackItems.tax,
+      currency: "USD",
+      invoiceDate: daysFromNow(-20),
+      dueDate: daysFromNow(-1), // past due, not paid => overdue
+      file: invoicePdfB,
+      paymentMethod: "check",
+      vendorId: slack.id,
+      uploadedById: bruno.id,
+      approvedById: carla.id,
+      lineItems: { create: slackItems.create },
       payments: {
         create: [
           {
-            amount: scheduledItems.amount,
-            status: "PROCESSING",
-            paymentMethodId: wire.id,
-            scheduledDate: daysFromNow(1),
+            amount: slackItems.amount,
+            status: "FAILED",
+            paymentMethodId: check.id,
+            processedAt: daysFromNow(-3),
           },
         ],
       },
     },
   });
 
-  // PAID — fully paid; past due date but PAID => never overdue.
+  // ===== Paid ===========================================================
+
+  // Fully paid; past due date but PAID => never overdue.
   const paidItems = lineItems([
     { description: "Vercel Pro — 10 seats", quantity: 10, unitPrice: 20, type: "EXPENSE", category: "Software" },
     { description: "Extra bandwidth", quantity: 1, unitPrice: 1000, type: "ITEM", category: "Infrastructure" },
@@ -242,6 +330,7 @@ async function main() {
       currency: "USD",
       invoiceDate: daysFromNow(-30),
       dueDate: daysFromNow(-2),
+      paymentMethod: "ach",
       vendorId: vercel.id,
       uploadedById: ana.id,
       approvedById: carla.id,
@@ -252,7 +341,6 @@ async function main() {
             amount: paidItems.amount,
             status: "PAID",
             paymentMethodId: ach.id,
-            scheduledDate: daysFromNow(-4),
             processedAt: daysFromNow(-3),
           },
         ],
@@ -260,52 +348,48 @@ async function main() {
     },
   });
 
-  // FAILED — first payment failed, then retried (1:N). Past due => overdue.
-  const failedItems = lineItems([
-    { description: "Slack Business+ — 60 seats", quantity: 60, unitPrice: 15, type: "EXPENSE", category: "Software" },
+  // Earlier infra invoice, paid by check.
+  const awsPaidItems = lineItems([
+    { description: "Reserved instances — annual", quantity: 1, unitPrice: 9800, type: "EXPENSE", category: "Infrastructure" },
   ]);
   await prisma.bill.create({
     data: {
-      number: "SLK-7781",
-      status: "FAILED",
-      source: "EMAIL",
-      amount: failedItems.amount,
-      tax: failedItems.tax,
+      number: "AWS-1998",
+      status: "PAID",
+      source: "CSV",
+      amount: awsPaidItems.amount,
+      tax: awsPaidItems.tax,
       currency: "USD",
-      invoiceDate: daysFromNow(-20),
-      dueDate: daysFromNow(-1), // past due, not paid => overdue
-      file: invoicePdfB,
-      vendorId: slack.id,
+      invoiceDate: daysFromNow(-55),
+      dueDate: daysFromNow(-25),
+      file: invoicePdfA,
+      paymentMethod: "check",
+      vendorId: aws.id,
       uploadedById: bruno.id,
       approvedById: carla.id,
-      lineItems: { create: failedItems.create },
+      lineItems: { create: awsPaidItems.create },
       payments: {
         create: [
           {
-            amount: failedItems.amount,
-            status: "FAILED",
-            paymentMethodId: ach.id,
-            scheduledDate: daysFromNow(-3),
-            processedAt: daysFromNow(-3),
-          },
-          {
-            amount: failedItems.amount,
-            status: "SCHEDULED",
+            amount: awsPaidItems.amount,
+            status: "PAID",
             paymentMethodId: check.id,
-            scheduledDate: daysFromNow(2),
+            processedAt: daysFromNow(-24),
           },
         ],
       },
     },
   });
 
-  const [bills, payments, methods] = await Promise.all([
+  const [bills, payments, methods, vendorCount, userCount] = await Promise.all([
     prisma.bill.count(),
     prisma.payment.count(),
     prisma.paymentMethod.count(),
+    prisma.vendor.count(),
+    prisma.user.count(),
   ]);
   console.log(
-    `Seeded ${bills} bills, ${payments} payments, ${methods} payment methods, 3 users, 6 vendors.`
+    `Seeded ${bills} bills, ${payments} payments, ${methods} payment methods, ${userCount} users, ${vendorCount} vendors.`
   );
 }
 

@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
-import { Badge } from "ui-system";
+import { Badge, toast } from "ui-system";
 
 import { useBillTopbar } from "@/app/bill/_components/bill-topbar";
-import { useBillDraft, type DraftForm } from "@/stores/bill-draft";
-import { saveDraft } from "../../actions";
+import { useBillDraft } from "@/stores/bill-draft";
+import { confirmBill } from "../../actions";
+import { persistDraft } from "../../_lib/persist-draft";
 import { DetailsSection } from "./details-section";
 import { FormFooter } from "./form-footer";
 import { LineItemsEditor } from "./line-items-editor";
+import { PaymentMethodSection } from "./payment-method-section";
 import { TotalsSummary } from "./totals-summary";
 import { VendorSection } from "./vendor-section";
 
@@ -26,8 +29,8 @@ export function BillForm() {
   const removeLineItem = useBillDraft((s) => s.removeLineItem);
   const status = useBillDraft((s) => s.status);
   const error = useBillDraft((s) => s.error);
-  const file = useBillDraft((s) => s.file);
 
+  const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -54,14 +57,7 @@ export function BillForm() {
     setSaving(true);
     setSaveError(null);
     try {
-      const fd = new FormData();
-      (Object.keys(form) as (keyof DraftForm)[]).forEach((k) =>
-        fd.append(k, form[k])
-      );
-      fd.append("lineItems", JSON.stringify(lineItems));
-      // The PDF blob (held in the store during review) is persisted as Bill.file.
-      if (file) fd.append("file", file);
-      await saveDraft(fd);
+      await persistDraft();
       setSaved(true);
     } catch (err) {
       console.error("[bill] save draft failed", err);
@@ -71,9 +67,20 @@ export function BillForm() {
     }
   }
 
-  function onCreate() {
-    // Stubbed — the full create/approve flow lands in a follow-up change.
-    console.log("[bill] create bill", { form, lineItems });
+  // Confirm: persist the latest form, transition DRAFT → REVIEWED, go to the view.
+  async function onConfirm() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const id = await persistDraft();
+      await confirmBill(id);
+      toast.success("Bill confirmed.");
+      router.push(`/bill/view/${id}`);
+    } catch (err) {
+      console.error("[bill] confirm failed", err);
+      setSaveError("Could not confirm the bill. Try again.");
+      setSaving(false);
+    }
   }
 
   return (
@@ -111,14 +118,20 @@ export function BillForm() {
             onTaxChange={(value) => setField("tax", value)}
           />
         </section>
+
+        <PaymentMethodSection
+          value={form.paymentMethod}
+          onChange={(value) => setField("paymentMethod", value)}
+        />
       </div>
 
       <FormFooter
         saving={saving}
+        extracting={status === "extracting"}
         saved={saved}
         saveError={saveError}
         onSaveDraft={onSaveDraft}
-        onCreate={onCreate}
+        onConfirm={onConfirm}
       />
     </div>
   );

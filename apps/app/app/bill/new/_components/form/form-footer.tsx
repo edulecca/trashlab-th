@@ -6,17 +6,21 @@ import { Button } from "ui-system";
 /** Sticky footer: save/create actions with an inline save-status message. */
 export function FormFooter({
   saving,
+  extracting = false,
   saved,
   saveError,
   onSaveDraft,
-  onCreate,
+  onConfirm,
 }: {
   saving: boolean;
+  /** True while a PDF is being scanned — actions stay disabled until it's done. */
+  extracting?: boolean;
   saved: boolean;
   saveError: string | null;
   onSaveDraft: () => void;
-  onCreate: () => void;
+  onConfirm: () => void;
 }) {
+  const disabled = saving || extracting;
   return (
     <div className="flex shrink-0 items-center justify-end gap-3 border-t bg-background px-8 py-3">
       {saveError ? (
@@ -30,12 +34,12 @@ export function FormFooter({
           Draft saved
         </span>
       ) : null}
-      <Button variant="ghost" size="md" onClick={onSaveDraft} disabled={saving}>
+      <Button variant="ghost" size="lg" onClick={onSaveDraft} disabled={disabled}>
         {saving ? <Loader2 className="size-4 animate-spin" /> : null}
         Save draft
       </Button>
-      <Button size="md" onClick={onCreate}>
-        Create bill
+      <Button size="lg" onClick={onConfirm} disabled={disabled}>
+        Confirm
       </Button>
     </div>
   );

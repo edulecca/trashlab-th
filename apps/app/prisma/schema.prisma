@@ -85,6 +85,7 @@ model Bill {
   dueDate     DateTime
   file        Bytes?
   memo        String?
+  paymentMethod String?  // chosen method slug (ach / check); used at Pay
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 

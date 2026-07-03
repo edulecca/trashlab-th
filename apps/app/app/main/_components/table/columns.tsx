@@ -6,6 +6,7 @@ import type { BillRow } from "@/lib/bill-row";
 import type { ColumnKey } from "@/stores/bills-view";
 import { AmountCell } from "./cells/amount-cell";
 import { DueDateCell } from "./cells/due-date-cell";
+import { PayBillCell } from "./cells/pay-bill-cell";
 import { StatusCell } from "./cells/status-cell";
 import { VendorCell } from "./cells/vendor-cell";
 
@@ -77,16 +78,6 @@ export const ACTION_COLUMN: ColumnDef<BillRow> = {
   enableSorting: false,
   cell: ({ row }) =>
     row.original.status === "APPROVED" ? (
-      <div className="flex justify-center">
-        <Button
-          size="md"
-          onClick={(e) => {
-            e.stopPropagation();
-            console.log("[bill] pay", row.original.id);
-          }}
-        >
-          Pay Bill
-        </Button>
-      </div>
+      <PayBillCell billId={row.original.id} />
     ) : null,
 };

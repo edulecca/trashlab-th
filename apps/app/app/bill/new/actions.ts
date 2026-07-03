@@ -136,6 +136,19 @@ async function transition(
   revalidateBill(id);
 }
 
+/** Soft-delete a DRAFT bill: mark it DELETED (hidden from every fetch). Drafts only. */
+export async function deleteBill(id: string) {
+  // Guarded: the `where` enforces DRAFT, so count === 0 means it's missing or
+  // already past draft. The row stays (tombstone) but is excluded everywhere.
+  const { count } = await prisma.bill.updateMany({
+    where: { id, status: "DRAFT" },
+    data: { status: "DELETED" },
+  });
+  if (count === 0) throw new Error("Cannot delete this bill.");
+  revalidatePath("/main");
+  revalidatePath("/bill/new");
+}
+
 /** DRAFT → REVIEWED. Fields are saved by `saveDraft` just before this. */
 export async function confirmBill(id: string) {
   await transition(id, "DRAFT", "REVIEWED");

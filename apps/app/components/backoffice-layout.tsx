@@ -57,9 +57,9 @@ export function BackofficeLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex min-h-svh bg-muted/30">
+    <div className="flex min-h-svh bg-background">
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r bg-background md:flex">
+      <aside className="hidden w-64 shrink-0 flex-col border-r bg-muted md:flex">
         <Brand />
         <NavLinks />
       </aside>
@@ -74,7 +74,7 @@ export function BackofficeLayout({ children }: { children: React.ReactNode }) {
       )}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-background transition-transform duration-200 md:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-muted transition-transform duration-200 md:hidden",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >

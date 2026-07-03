@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { toBillRow } from "@/lib/bill-row";
 import { getBillView } from "@/lib/bill-view";
+import { visibleBillsWhere } from "@/lib/bills";
 import { prisma } from "@/lib/prisma";
 
 import { BillView } from "./_components/bill-view";
@@ -22,6 +23,7 @@ export default async function BillViewPage({
 
   // Rail data (same shape as the new-bill screen).
   const bills = await prisma.bill.findMany({
+    where: visibleBillsWhere(),
     include: { vendor: true, uploadedBy: true },
     orderBy: { dueDate: "asc" },
   });

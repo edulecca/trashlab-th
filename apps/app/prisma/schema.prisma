@@ -21,6 +21,7 @@ enum BillStatus {
   APPROVED
   PAID
   FAILED
+  DELETED // soft-delete tombstone — excluded from every bill fetch
 }
 
 /// How a bill entered the system (Ramp-style entry points).

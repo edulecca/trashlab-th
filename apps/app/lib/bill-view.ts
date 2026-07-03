@@ -40,7 +40,7 @@ export async function getBillView(id: string): Promise<BillViewData | null> {
       lineItems: { orderBy: { order: "asc" } },
     },
   });
-  if (!bill) return null;
+  if (!bill || bill.status === "DELETED") return null;
 
   const [flag] = await prisma.$queryRaw<{ hasFile: boolean }[]>`
     SELECT ("file" IS NOT NULL) AS "hasFile" FROM "Bill" WHERE "id" = ${id}

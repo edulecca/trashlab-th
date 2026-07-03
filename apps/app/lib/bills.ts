@@ -1,5 +1,19 @@
-import type { Bill } from "../generated/prisma/client";
+import type { Bill, BillStatus } from "../generated/prisma/client";
 import type { BillRow } from "./bill-row";
+
+// String literal (not the enum value) so this stays a type-only Prisma import —
+// `lib/bills` is imported by client components and must not pull the runtime.
+const DELETED = "DELETED" as BillStatus;
+
+/**
+ * Prisma `where` for bill fetches that hides soft-deleted (DELETED) bills.
+ * Pass the requested statuses to also constrain to them; DELETED is always out.
+ */
+export function visibleBillsWhere(statuses?: BillStatus[]) {
+  return statuses && statuses.length
+    ? { status: { in: statuses, not: DELETED } }
+    : { status: { not: DELETED } };
+}
 
 /**
  * A bill is overdue when its due date has passed and it has not been paid.

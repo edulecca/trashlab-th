@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { BILL_STATUSES, toBillRow, type BillStatus } from "@/lib/bill-row";
+import { visibleBillsWhere } from "@/lib/bills";
 
 // Prisma + always-fresh reads.
 export const runtime = "nodejs";
@@ -18,7 +19,7 @@ export async function GET(req: Request) {
     .filter((s): s is BillStatus => (BILL_STATUSES as string[]).includes(s));
 
   const bills = await prisma.bill.findMany({
-    where: statuses.length ? { status: { in: statuses } } : undefined,
+    where: visibleBillsWhere(statuses),
     include: { vendor: true, uploadedBy: true },
     orderBy: { dueDate: "asc" },
   });

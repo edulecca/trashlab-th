@@ -1,6 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
-import { Button } from "ui-system";
+import { Badge, Button } from "ui-system";
 
 import type { BillRow } from "@/lib/bill-row";
 import type { ColumnKey } from "@/stores/bills-view";
@@ -31,9 +31,16 @@ export const COLUMN_DEFS: Record<ColumnKey, ColumnDef<BillRow>> = {
     accessorKey: "number",
     header: "Invoice",
     cell: ({ row }) => (
-      <span className="text-muted-foreground tabular-nums">
-        {row.getValue("number")}
-      </span>
+      <div className="flex items-center gap-2">
+        <span className="text-muted-foreground tabular-nums">
+          {row.getValue("number")}
+        </span>
+        {row.original.duplicateOf ? (
+          <Badge variant="destructive" title={`Duplicate of ${row.original.duplicateOf}`}>
+            Duplicate
+          </Badge>
+        ) : null}
+      </div>
     ),
   },
   dueDate: {

@@ -5,8 +5,10 @@ import { isOverdue } from "./bills";
 
 export type { BillStatus };
 
-/** The set of valid status strings, for validating query input. */
-export const BILL_STATUSES = Object.values(BillStatus) as BillStatus[];
+/** The set of queryable status strings (DELETED is a hidden tombstone). */
+export const BILL_STATUSES = Object.values(BillStatus).filter(
+  (s) => s !== BillStatus.DELETED
+) as BillStatus[];
 
 /** Row shape consumed by the bills table — the single source of truth shared by the API and the page. */
 export type BillRow = {
@@ -21,6 +23,12 @@ export type BillRow = {
   amount: number;
   currency: string;
   dueDate: string;
+  /**
+   * When this row duplicates an earlier bill (same invoice number + vendor),
+   * the earlier bill's number; otherwise null. Derived client-side over the
+   * loaded set — see `annotateDuplicates` — never persisted.
+   */
+  duplicateOf: string | null;
 };
 
 type BillWithRelations = Bill & { vendor: Vendor; uploadedBy: User };
@@ -39,5 +47,6 @@ export function toBillRow(b: BillWithRelations, now: Date = new Date()): BillRow
     amount: Number(b.amount),
     currency: b.currency,
     dueDate: b.dueDate.toISOString(),
+    duplicateOf: null, // set later by annotateDuplicates over the loaded set
   };
 }

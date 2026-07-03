@@ -2,12 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle } from "lucide-react";
-import { Badge, toast } from "ui-system";
+import { AlertCircle, ChevronDown, Trash2 } from "lucide-react";
+import {
+  Badge,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  toast,
+} from "ui-system";
 
 import { useBillTopbar } from "@/app/bill/_components/bill-topbar";
+import type { BillRow } from "@/lib/bill-row";
+import { findDuplicateNumber } from "@/lib/duplicates";
 import { useBillDraft } from "@/stores/bill-draft";
-import { confirmBill } from "../../actions";
+import { confirmBill, deleteBill } from "../../actions";
 import { persistDraft } from "../../_lib/persist-draft";
 import { DetailsSection } from "./details-section";
 import { FormFooter } from "./form-footer";
@@ -20,7 +29,7 @@ import { VendorSection } from "./vendor-section";
  * Create-bill form. Wires the draft store into the (presentational) section
  * components and owns the save/create orchestration + transient save status.
  */
-export function BillForm() {
+export function BillForm({ bills }: { bills: BillRow[] }) {
   const form = useBillDraft((s) => s.form);
   const lineItems = useBillDraft((s) => s.lineItems);
   const setField = useBillDraft((s) => s.setField);
@@ -29,6 +38,8 @@ export function BillForm() {
   const removeLineItem = useBillDraft((s) => s.removeLineItem);
   const status = useBillDraft((s) => s.status);
   const error = useBillDraft((s) => s.error);
+  const billId = useBillDraft((s) => s.billId);
+  const reset = useBillDraft((s) => s.reset);
 
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -47,6 +58,17 @@ export function BillForm() {
     number: form.number,
     statusLabel: "Draft",
   });
+
+  // UI-only duplicate check: does the current draft repeat a loaded bill?
+  const duplicateOf = findDuplicateNumber(bills, {
+    number: form.number,
+    vendor: form.vendorName,
+    excludeId: billId ?? undefined,
+  });
+
+  // A persisted draft can be deleted (the create screen only holds drafts —
+  // confirming navigates away — so a set billId means an editable draft).
+  const deletable = billId != null;
 
   const title =
     form.vendorName && form.number
@@ -83,18 +105,62 @@ export function BillForm() {
     }
   }
 
+  async function onDelete() {
+    if (!billId) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await deleteBill(billId);
+      toast.success("Bill deleted.");
+      reset();
+      router.push("/main");
+    } catch (err) {
+      console.error("[bill] delete failed", err);
+      setSaveError("Could not delete the bill. Try again.");
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Header */}
       <div className="shrink-0 px-8 pt-8 pb-2">
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-          <Badge variant="secondary">Draft</Badge>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+            <Badge variant="secondary">Draft</Badge>
+          </div>
+          {deletable ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="inline-flex h-9 items-center gap-1.5 rounded-full border border-input px-3 text-sm font-medium transition-colors hover:bg-muted data-[state=open]:bg-muted">
+                <span
+                  className="size-1.5 rounded-full bg-primary"
+                  aria-hidden="true"
+                />
+                Options
+                <ChevronDown className="size-4 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem variant="destructive" onSelect={() => onDelete()}>
+                  <Trash2 />
+                  Delete Bill
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
         </div>
         {error && status === "error" ? (
           <div className="mt-3 flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             <AlertCircle className="size-4 shrink-0" />
             <span>{error}</span>
+          </div>
+        ) : null}
+        {duplicateOf ? (
+          <div className="mt-3 flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <AlertCircle className="size-4 shrink-0" />
+            <span>
+              This bill duplicates <strong>{duplicateOf}</strong>.
+            </span>
           </div>
         ) : null}
       </div>
@@ -130,6 +196,8 @@ export function BillForm() {
         extracting={status === "extracting"}
         saved={saved}
         saveError={saveError}
+        deletable={deletable}
+        onDelete={onDelete}
         onSaveDraft={onSaveDraft}
         onConfirm={onConfirm}
       />

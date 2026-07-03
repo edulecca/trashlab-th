@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ListItem, SearchField } from "ui-system";
+import { Badge, ListItem, SearchField } from "ui-system";
 
 import { VendorAvatar } from "@/components/vendor-avatar";
 import type { BillRow } from "@/lib/bill-row";
@@ -12,6 +12,7 @@ import {
   STATUS_TO_CATEGORY,
 } from "@/lib/bill-status";
 import { billHref, matchesBillSearch } from "@/lib/bills";
+import { annotateDuplicates } from "@/lib/duplicates";
 import { formatDate, money } from "@/lib/format";
 
 /**
@@ -22,7 +23,9 @@ import { formatDate, money } from "@/lib/format";
 export function BillsRail({ rows }: { rows: BillRow[] }) {
   const [query, setQuery] = useState("");
 
-  const filtered = rows.filter((r) => matchesBillSearch(r, query));
+  const filtered = annotateDuplicates(rows).filter((r) =>
+    matchesBillSearch(r, query)
+  );
   const groups = CATEGORY_ORDER.map((key) => ({
     key,
     ...CATEGORY_META[key],
@@ -69,6 +72,16 @@ export function BillsRail({ rows }: { rows: BillRow[] }) {
                         }
                         title={b.vendor}
                         subtitle={`${money(b.amount, b.currency)} · Due ${formatDate(b.dueDate)}`}
+                        rightAccessory={
+                          b.duplicateOf ? (
+                            <Badge
+                              variant="destructive"
+                              title={`Duplicate of ${b.duplicateOf}`}
+                            >
+                              Duplicate
+                            </Badge>
+                          ) : undefined
+                        }
                       />
                     </Link>
                   </li>

@@ -10,7 +10,7 @@ export default function BillsPage() {
   return (
     <div className="w-full">
       <div className="mb-6 flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Bills</h1>
+        <h1 className="text-4xl font-semibold tracking-tight">Bills</h1>
         <Button asChild size="lg">
           <Link href="/bill/new">New Bill</Link>
         </Button>

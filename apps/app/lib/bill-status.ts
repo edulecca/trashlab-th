@@ -20,6 +20,8 @@ export const STATUS_DISPLAY: Record<
   APPROVED: { label: "Approved", variant: "secondary" },
   PAID: { label: "Paid", variant: "success" },
   FAILED: { label: "Failed", variant: "destructive" },
+  // Never rendered — DELETED bills are excluded from every fetch.
+  DELETED: { label: "Deleted", variant: "secondary" },
 };
 
 // Overview grouping: the bill lifecycle collapsed into ordered sections.
@@ -33,6 +35,7 @@ export const STATUS_TO_CATEGORY: Record<BillStatus, CategoryKey> = {
   APPROVED: "release",
   FAILED: "release",
   PAID: "paid",
+  DELETED: "review", // unreachable — DELETED is filtered from every fetch
 };
 
 /** How a section renders — shared by the table group headers and the new-bill rail. */

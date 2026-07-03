@@ -13,6 +13,7 @@ import { Button } from "ui-system";
 
 import { useRailToggle } from "@/components/rail-toggle";
 import { VendorAvatar } from "@/components/vendor-avatar";
+import { useBillDraft } from "@/stores/bill-draft";
 
 /** Bill context shown in the top bar (published by the active screen). */
 type BillHeader = {
@@ -101,7 +102,11 @@ export function BillTopbar() {
 
       <div className="ml-auto px-4">
         <Button asChild size="md">
-          <Link href="/bill/new">
+          <Link
+            href="/bill/new"
+            // Start fresh — clear any draft being edited before creating a new one.
+            onClick={() => useBillDraft.getState().reset()}
+          >
             <Plus data-icon="inline-start" />
             New Bill
           </Link>

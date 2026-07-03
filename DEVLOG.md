@@ -345,3 +345,54 @@ Registro cronológico de decisiones y trabajo, para luego volcarlo al README / e
 - `lib/bill-draft-input.ts`: schema Zod para el payload de `saveDraft` — valida **bounds/tipos/enums/
   formatos** (no required-ness: el draft puede ser parcial; lo required va en Confirm). El blob PDF se valida
   aparte (tamaño `MAX_FILE_BYTES` + magic bytes `%PDF-`). `saveDraft` rechaza payloads abusivos con detalle.
+
+---
+
+## Refactors de arquitectura (sin commitear al momento de escribir)
+
+### Rename del workspace `apps/app` → `apps/web`
+- Motivación: `apps/app/app/…` confundía (el workspace se llamaba `app` y adentro está el `app/` router de
+  Next → "app/app"). Convención estándar `apps/web`.
+- Ejecutado con `mv` (no `git mv`: había cruft untracked); git detectó **95 renames**, 0 deletes → historia
+  preservada. `apps/web/package.json` `name`→`web`, script raíz `dev -w web`, `npm install` relinkeó
+  `node_modules/web` (borró `app`), lockfile regenerado limpio.
+- **Cero churn de imports**: nadie importaba el workspace por nombre (`from "app"`) — todo usa `@/…`
+  (relativo al paquete) y `ui-system`. Los docs históricos de OpenSpec/DEVLOG con `apps/app` se dejaron
+  como registro.
+- Gotcha: el dev server zombie (path viejo) recreaba `apps/app/.next` → matado. Aparte, unos `.next/dev/*`
+  estaban trackeados de antes (hygiene pre-existente, no del rename).
+
+### Reorg de `lib/` por rol + feature
+- `lib/` era "bolsa de gatos" (infra + genérico + AI/pdf + ~9 archivos del dominio bill planos). Agrupado:
+  - **`lib/bill/`** (dominio compartido entre features): `row` · `status` · `bills` · `duplicates` ·
+    `payment-methods` · `vendors`.
+  - **Single-feature → colocados en el `_lib/` de su ruta**: `line-items` + `draft-input` →
+    `app/bill/new/_lib/`; `view` (`getBillView`) → `app/bill/view/[id]/_lib/`.
+  - Transversales arriba: `prisma`, `format`, `extraction/` (ex `ai/`), `pdf/`.
+- Criterio (charlado con el user): **`lib/` = reusado por varias features; lo de una sola vive en la
+  feature**. `git mv` + reapunte de imports internos (`./row`, `../prisma`, aliases) y externos (~35),
+  `tsc` limpio.
+- Aclaración conceptual que quedó: `findOrCreateVendor` **no** puede ser hook de RQ (usa Prisma → server;
+  los hooks corren en cliente). Es la capa de abajo; los hooks son el wrapper de arriba. Se queda como
+  helper server en `lib/bill/`.
+
+### Data-flow cliente↔server unificado (React Query sobre server actions)
+- Patrón consolidado: **`useQuery` (GET) para leer, `useMutation` envolviendo server actions para escribir
+  + invalidar `["bills"]`**. REST route handlers para reads/PDF (`/api/bills`, `/api/bills/[id]/file`,
+  `/api/extract`); server actions (RPC) para mutaciones (`saveDraft`/`confirmBill`/`approveBill`/`payBill`/
+  `deleteBill`/`deleteBills`).
+- **Unificado el create-flow**: hook nuevo `hooks/use-draft-actions.ts` (`save`/`confirm`/`remove` como
+  mutations con invalidación + toasts) → `bill-form` deriva `isPending`/`isSuccess`/`isError` en vez de
+  estado local + try/catch. Mejora concreta: el create ahora **invalida `["bills"]`** (antes solo
+  `revalidatePath` server) → al volver a `/main`, la tabla RQ refleja el cambio.
+- **Extraídos 3 hooks más a `hooks/`** (todos globales, reutilizables):
+  - `bulkDelete` movido a `use-bill-actions` (era la única mutation inline, en `options-menu`, con
+    `useState`+`queryClient` a mano).
+  - `use-invoice-extraction`: flujo upload+`/api/extract`+`loadExtraction`+auto-`persistDraft`+object-URL
+    sacado de `DocumentPreview` → el componente queda **presentacional**.
+  - `use-search-param`: sync genérico `[value, setValue]` de un valor a `?param=` (borra en el default para
+    URL limpia); `bills-view` lo usa para el `?tab=`.
+- Los hooks de **context** (`useBillTopbar`, `useRailToggle`) se quedan **colocados con su Provider** (van
+  pegados al árbol que envuelven; no a `hooks/`). No todo hook es global.
+- `hooks/` final: `use-bills` · `use-bill-actions` · `use-draft-actions` · `use-invoice-extraction` ·
+  `use-search-param`. `tsc --noEmit` limpio tras cada refactor.

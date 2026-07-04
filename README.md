@@ -16,7 +16,10 @@ out (~10s Hobby / 60s Pro on Vercel), so a slow AI call can hit that. If this we
 a dedicated backend would be worth a look.
 
 The challenge asked for the product to **look and feel a lot like Ramp**, using Ramp's own
-product as the visual reference. So I split the design system into a **separate package** —
+product as the visual reference — I worked from
+[Ramp's Bill Pay docs](https://support.ramp.com/managing-bills-and-payments-on-bill-pay/) and the
+[Ramp product tour](https://ramp.com/explore-product). So I split the design system into a
+**separate package** —
 **`ui-system`** (a design module several apps could share) — with **atomic components**,
 which lets me consume them directly without much manipulation. It has a **Storybook** inside.
 
@@ -115,11 +118,14 @@ On upload, two kinds of errors can surface:
 
 ## How it was built
 
-I leaned on **Claude Code** (with **Wispr Flow** for dictation) throughout. For the very
-hard or heavy tasks — where I needed
+I leaned on **Claude Code** throughout. For the very hard or heavy tasks — where I needed
 to reason in depth about how the app would interact — I relied on **spec-driven development
 (SDD) via [OpenSpec](https://github.com/Fission-AI/OpenSpec)**, which keeps context across
 sessions of both the progress and the specs the application has (see `openspec/`).
+
+A key guardrail is keeping features and specs **contextualized**: writing each change as intent +
+specs + tasks keeps the agent anchored to what the app should do, and that context carries across
+sessions — as does a well-tuned **`CLAUDE.md`** at the repo level.
 
 ## Run locally
 

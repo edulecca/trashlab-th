@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -11,9 +11,16 @@ import {
 import { useRailToggle } from "./rail-toggle";
 
 /**
- * Three-column shell for the bill screens, built on react-resizable-panels. Each
- * column is a draggable panel. The left rail is collapsible: the top-bar toggle
- * drives it via `useRailToggle`, and dragging it shut syncs the toggle back.
+ * Shell for the bill screens.
+ *
+ * Desktop (md+): three draggable columns — list rail · content · document
+ * preview — built on react-resizable-panels; the left rail is collapsible via
+ * the top-bar toggle.
+ *
+ * Mobile: the resizable columns don't fit, so we stack the list rail on top of
+ * the content and drop the document preview (upload/preview is a desktop
+ * affordance). Single-render per breakpoint — no double-mounting the stateful
+ * form/preview.
  */
 export function ResizableColumns({
   left,
@@ -27,13 +34,35 @@ export function ResizableColumns({
   const { collapsed, setCollapsed, setRailSize } = useRailToggle();
   const leftPanel = usePanelRef();
 
-  // Reflect the toggle onto the panel (collapse/expand imperatively).
+  // Mobile breakpoint (client-only; SSR renders the desktop layout to stay
+  // hydration-stable, then swaps on mount if we're on a narrow screen).
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  // Reflect the toggle onto the panel (desktop only; no-op while unmounted).
   useEffect(() => {
     const panel = leftPanel.current;
     if (!panel) return;
     if (collapsed && !panel.isCollapsed()) panel.collapse();
     else if (!collapsed && panel.isCollapsed()) panel.expand();
   }, [collapsed, leftPanel]);
+
+  if (isMobile) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col bg-background">
+        {/* List rail on top — capped + scrollable so the content stays reachable. */}
+        <div className="max-h-[38vh] shrink-0 overflow-auto border-b">{left}</div>
+        {/* Main content below; the document preview (right) is dropped on mobile. */}
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      </div>
+    );
+  }
 
   return (
     <ResizablePanelGroup

@@ -6,9 +6,10 @@ visual reference. A company receives bills from vendors and moves each one
 
 ## Demo
 
-<div style="position: relative; padding-bottom: 64.98194945848375%; height: 0;"><iframe src="https://www.loom.com/embed/c0d7171a434646f4afff71f27e877cc3" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
-
-<!-- GitHub strips <iframe>; this clickable thumbnail is the fallback that renders everywhere. -->
+<!-- GitHub strips <iframe>, so the demo is a clickable thumbnail (animated GIF preview) that
+     opens the Loom. This renders everywhere GitHub markdown does. To embed a *playable* inline
+     video instead, upload an .mp4 to GitHub (drag it into the README editor on github.com) and
+     use the resulting user-attachments URL. -->
 [![Watch the demo](https://cdn.loom.com/sessions/thumbnails/c0d7171a434646f4afff71f27e877cc3-with-play.gif)](https://www.loom.com/share/c0d7171a434646f4afff71f27e877cc3)
 
 - **WEB:** https://trashlab-th-qw7zvtdol-eduleccas-projects.vercel.app/main
@@ -116,6 +117,8 @@ On upload, two kinds of errors can surface:
   It still renders on mobile, but the flows would need rethinking for a real mobile version.
 - **Bulk ingestion** — no multi-PDF or Excel/CSV upload. It's an MVP and I wanted to show
   the core flow — **upload → ingest → recognize** — so bulk was set aside.
+- **Email ingestion** — no AP email forwarding (Ramp's `@ap.ramp.com` inbox that turns vendor
+  emails into drafts). Manual upload already covers the same **ingest → recognize** path.
 - **Advanced table filters** — beyond the status tabs, search, column controls, sorting, and
   CSV **export** that do ship, I didn't build richer filters (by vendor / date range). With the
   view store already in place, they'd slot in the same way.

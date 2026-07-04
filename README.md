@@ -1,6 +1,6 @@
 # TrashLab Challenge
 
-An **accounts-payable / Bill Pay** product — the Silver.dev take-home, with **Ramp** as the
+An **accounts-payable / Bill Pay** product take-home, with **Ramp** as the
 visual reference. A company receives bills from vendors and moves each one
 **draft → review → approve → pay**; the bill's **status drives the whole UI**.
 
@@ -138,11 +138,11 @@ intent + specs + tasks keeps context across sessions (see `openspec/`).
 ## Run locally
 
 ```bash
-npm install
-
-# apps/web/.env
+# apps/web/.env  — add this file BEFORE installing (postinstall runs `prisma generate`)
 #   DATABASE_URL=<your Neon Postgres URL>
 #   ANTHROPIC_API_KEY=<your Claude API key>
+
+npm install
 
 npm run db:migrate -w web   # apply migrations
 npm run db:seed -w web      # demo data

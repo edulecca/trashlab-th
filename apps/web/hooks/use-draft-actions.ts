@@ -58,7 +58,8 @@ export function useDraftActions() {
       invalidate();
       toast.success("Bill deleted.");
       reset();
-      router.push("/main");
+      // Back to an empty create screen (not the id we just deleted).
+      router.push("/bill/new");
     },
     onError: (err) => {
       console.error("[bill] delete failed", err);

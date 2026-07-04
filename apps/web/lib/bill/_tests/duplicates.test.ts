@@ -52,4 +52,19 @@ describe("findDuplicate", () => {
     ).toBe("a");
     expect(findDuplicate(rows, { number: "", vendor: "Acme" })).toBeNull();
   });
+
+  it("does NOT flag the original (earliest) draft even when a later duplicate exists", () => {
+    const rows = [
+      row("a", "INV-1", "Acme", "2026-01-01"), // original
+      row("b", "INV-1", "Acme", "2026-02-01"), // later duplicate
+    ];
+    // Reopening the original 'a' → not a duplicate.
+    expect(
+      findDuplicate(rows, { number: "INV-1", vendor: "Acme", excludeId: "a" })
+    ).toBeNull();
+    // Reopening the later 'b' → duplicate, points at the original 'a'.
+    expect(
+      findDuplicate(rows, { number: "INV-1", vendor: "Acme", excludeId: "b" })?.id
+    ).toBe("a");
+  });
 });

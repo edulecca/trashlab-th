@@ -5,7 +5,6 @@ import { BillActionBar } from "./bill-action-bar";
 import { DetailsSection } from "@/app/bill/new/_components/form/details-section";
 import { FormSection } from "@/app/bill/new/_components/form/form-section";
 import { LineItemsEditor } from "@/app/bill/new/_components/form/line-items-editor";
-import { PaymentMethodSection } from "@/app/bill/new/_components/form/payment-method-section";
 import { TotalsSummary } from "@/app/bill/new/_components/form/totals-summary";
 import { VendorSection } from "@/app/bill/new/_components/form/vendor-section";
 import { BillsRail } from "@/components/bills-rail";
@@ -15,6 +14,7 @@ import { STATUS_DISPLAY } from "@/lib/bill/status";
 import type { BillViewData } from "@/lib/bill/bill-view";
 import type { DraftForm } from "@/stores/bill-draft";
 import { BillPdfPanel } from "./bill-pdf-panel";
+import { EditablePaymentMethod } from "./editable-payment-method";
 
 /**
  * Read-only bill screen: reuses the create layout + form sections in disabled
@@ -70,7 +70,12 @@ export function BillView({
             />
           </FormSection>
 
-          <PaymentMethodSection value={bill.paymentMethod} disabled />
+          {/* Editable until the bill is PAID — then the method is locked. */}
+          <EditablePaymentMethod
+            billId={bill.id}
+            initial={bill.paymentMethod}
+            editable={bill.status !== "PAID"}
+          />
         </div>
 
         {/* Sticky action bar — same pattern as the create-flow footer. */}

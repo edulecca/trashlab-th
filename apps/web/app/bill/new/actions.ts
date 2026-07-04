@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { Prisma, type BillStatus } from "@/generated/prisma/client";
 import { findOrCreateVendor } from "@/lib/bill/vendors";
-import { DEFAULT_PAYMENT_METHOD } from "@/lib/bill/payment-methods";
+import {
+  DEFAULT_PAYMENT_METHOD,
+  PAYMENT_METHODS,
+} from "@/lib/bill/payment-methods";
 import { billDraftInput, parseLineItemsJson } from "./_lib/draft-input";
 import { MAX_FILE_BYTES } from "@/lib/extraction/limits";
 
@@ -189,6 +192,24 @@ export async function deleteBills(ids: string[]): Promise<{ count: number }> {
     revalidatePath("/bill/new");
   }
   return { count };
+}
+
+/**
+ * Change a bill's payment method. Allowed in every state until it's PAID —
+ * once paid the method is locked (the Payment already recorded it). The
+ * `notIn` guard means count === 0 for a paid/deleted/missing bill.
+ */
+export async function updatePaymentMethod(id: string, slug: string) {
+  if (!PAYMENT_METHODS.some((m) => m.slug === slug))
+    throw new Error(`Unknown payment method: ${slug}`);
+  const { count } = await prisma.bill.updateMany({
+    where: { id, status: { notIn: ["PAID", "DELETED"] } },
+    data: { paymentMethod: slug },
+  });
+  if (count === 0)
+    throw new Error("Cannot change the payment method on a paid bill.");
+  revalidateBill(id);
+  revalidatePath("/bill/new");
 }
 
 /** DRAFT → REVIEWED. Fields are saved by `saveDraft` just before this. */

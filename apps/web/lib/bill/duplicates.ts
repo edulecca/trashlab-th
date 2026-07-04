@@ -16,6 +16,10 @@ function qualifies(number: string): boolean {
 const keyOf = (number: string, vendor: string) =>
   `${number.trim().toLowerCase()}::${vendor.trim().toLowerCase()}`;
 
+/** Chronological order (ties broken by id) — the earliest is the original. */
+const byUpload = (a: BillRow, b: BillRow) =>
+  a.uploadedAt.localeCompare(b.uploadedAt) || a.id.localeCompare(b.id);
+
 /**
  * Return a copy of `rows` with `duplicateOf` set: for each group sharing a
  * qualifying number + vendor, the earliest `uploadedAt` (ties by id) is the
@@ -34,9 +38,7 @@ export function annotateDuplicates(rows: BillRow[]): BillRow[] {
   const duplicateOf = new Map<string, string>(); // row.id -> original number
   for (const group of groups.values()) {
     if (group.length < 2) continue;
-    const ordered = [...group].sort(
-      (a, b) => a.uploadedAt.localeCompare(b.uploadedAt) || a.id.localeCompare(b.id)
-    );
+    const ordered = [...group].sort(byUpload);
     const original = ordered[0];
     for (const row of ordered.slice(1)) {
       duplicateOf.set(row.id, original.number);
@@ -51,9 +53,12 @@ export function annotateDuplicates(rows: BillRow[]): BillRow[] {
 }
 
 /**
- * The earliest (original) bill matching `number` + `vendor` in `rows`,
- * excluding `excludeId` — or null if none. Used by the create screen's
- * duplicate banner, which links to it.
+ * The original bill the current draft duplicates, or null. A draft is a
+ * duplicate only when an *earlier* bill shares its number + vendor — so the
+ * first-created bill (the original) is never flagged, even once later
+ * duplicates exist. `excludeId` is the draft's own id (found in `rows` when
+ * it's persisted, so we can tell whether it's the earliest). Used by the create
+ * screen's duplicate banner, which links to the original.
  */
 export function findDuplicate(
   rows: BillRow[],
@@ -64,8 +69,18 @@ export function findDuplicate(
   const matches = rows
     .filter((r) => r.id !== target.excludeId && qualifies(r.number))
     .filter((r) => keyOf(r.number, r.vendor) === key)
-    .sort(
-      (a, b) => a.uploadedAt.localeCompare(b.uploadedAt) || a.id.localeCompare(b.id)
-    );
-  return matches.length > 0 ? matches[0] : null;
+    .sort(byUpload);
+  if (matches.length === 0) return null;
+
+  const original = matches[0];
+
+  // If the draft itself is older than the earliest other match, it's the
+  // group's original — don't flag it. (A brand-new draft isn't in `rows`, so
+  // `self` is undefined and any existing match makes it a duplicate.)
+  const self = target.excludeId
+    ? rows.find((r) => r.id === target.excludeId)
+    : undefined;
+  if (self && byUpload(self, original) < 0) return null;
+
+  return original;
 }

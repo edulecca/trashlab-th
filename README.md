@@ -1,5 +1,19 @@
 # TrashLab Challenge
 
+An **accounts-payable / Bill Pay** product — the Silver.dev take-home, with **Ramp** as the
+visual reference. A company receives bills from vendors and moves each one
+**draft → review → approve → pay**; the bill's **status drives the whole UI**.
+
+## Demo
+
+<div style="position: relative; padding-bottom: 64.98194945848375%; height: 0;"><iframe src="https://www.loom.com/embed/c0d7171a434646f4afff71f27e877cc3" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
+<!-- GitHub strips <iframe>; this clickable thumbnail is the fallback that renders everywhere. -->
+[![Watch the demo](https://cdn.loom.com/sessions/thumbnails/c0d7171a434646f4afff71f27e877cc3-with-play.gif)](https://www.loom.com/share/c0d7171a434646f4afff71f27e877cc3)
+
+- **WEB:** https://trashlab-th-qw7zvtdol-eduleccas-projects.vercel.app/main
+- **STORYBOOK:** https://trashlab-th-ui-system-2zujlr31c-eduleccas-projects.vercel.app/?path=/story/components-textarea--default
+
 ## Approach
 
 The approach was to build this **end-to-end**: a single framework that lets me interact
@@ -48,34 +62,33 @@ packages/ui-system  → the design system (components + Storybook)
 
 ## Architecture
 
-**State management (Zustand)** — used in two flows:
+**State (Zustand)** — two in-memory stores:
 
-- **`main` flow** — holds the table's **display state**: the search filter (which rows
-  show), which **columns** are shown and their order, and the **row selection** used by
-  bulk actions; all of that has to be persisted in a state that manages it.
-- **`new bill` flow** — same idea: a general preset, like a simple/generic form controller,
-  where the whole flow is managed.
+- **`main`** — the table's display state: search filter, column visibility + order, and the
+  row selection that drives bulk actions.
+- **`new bill`** — the draft being created/edited: form fields, line items, uploaded PDF, and
+  extraction status.
 
-**TanStack Query** — used to manage the APIs' cache and have loading state — e.g. when
-queries need to be invalidated and data refetched.
+**TanStack Query** — server cache + loading state for the bill lists; mutations invalidate and
+refetch.
 
-**UI System** — the library's components are kept **as stateless as possible**, so they can
-be reused as components get requested one way or another.
-
-**Tailwind** — the styling layer (utility-first), with the theme driven by CSS-variable
-design tokens shared across the app and the UI System.
+**UI System** — components kept **as stateless as possible** so they compose freely across the app.
 
 **AI — two agents** (orchestrated by `/api/extract`, via the Vercel AI SDK):
 
-- a **classifier** — cheap model (`claude-haiku-4-5`) that decides whether the uploaded
-  document is actually a bill, so junk exits early without spending the expensive call;
+- a **classifier** — cheap model (`claude-haiku-4-5`) that decides whether the upload is a bill,
+  so junk exits early without spending the expensive call;
 - an **extractor** — strong model (`claude-opus-4-8`) that pulls the structured fields.
 
 Pattern: **cheap model filters, expensive model works.**
 
-**Database** — very simple relations: **User, Vendor, Bill, Line Items, Payment, Payment
-Method** — nothing complex. For persistence I used **Neon** (Postgres), with **Prisma** as
-the ORM.
+**Database** — deliberately lean relations (**User, Vendor, Bill, Line Items, Payment, Payment
+Method**): I focused on the **billing flow**, so the schema stays simple for the MVP. Persisted
+on **Neon** (Postgres) via **Prisma**.
+
+## Data model
+
+![Bill Pay — data model (Prisma / PostgreSQL)](docs/billpay-erd.png)
 
 ## The flow
 
@@ -118,14 +131,9 @@ On upload, two kinds of errors can surface:
 
 ## How it was built
 
-I leaned on **Claude Code** throughout. For the very hard or heavy tasks — where I needed
-to reason in depth about how the app would interact — I relied on **spec-driven development
-(SDD) via [OpenSpec](https://github.com/Fission-AI/OpenSpec)**, which keeps context across
-sessions of both the progress and the specs the application has (see `openspec/`).
-
-A key guardrail is keeping features and specs **contextualized**: writing each change as intent +
-specs + tasks keeps the agent anchored to what the app should do, and that context carries across
-sessions — as does a well-tuned **`CLAUDE.md`** at the repo level.
+Built with **Claude Code**, using **spec-driven development via
+[OpenSpec](https://github.com/Fission-AI/OpenSpec)** for the hard parts — each change written as
+intent + specs + tasks keeps context across sessions (see `openspec/`).
 
 ## Run locally
 

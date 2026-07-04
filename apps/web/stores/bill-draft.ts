@@ -12,7 +12,7 @@ import { create } from "zustand";
 import type { ExtractionData } from "@/lib/extraction/schema";
 import { DEFAULT_PAYMENT_METHOD } from "@/lib/bill/payment-methods";
 
-export type DraftStatus = "idle" | "extracting" | "ready" | "error";
+export type DraftStatus = "idle" | "extracting" | "ready";
 
 /** A single editable line item. Price is a string to keep the input controlled. */
 export type DraftLineItem = { description: string; amount: string };
@@ -70,7 +70,6 @@ type BillDraftState = {
   form: DraftForm;
   lineItems: DraftLineItem[];
   status: DraftStatus;
-  error: string | null;
   /** The uploaded PDF (held during review, persisted as Bill.file on save). */
   file: File | null;
   /** Object URL for previewing the uploaded PDF; created/revoked by the uploader. */
@@ -85,7 +84,6 @@ type BillDraftState = {
   setFile: (file: File | null) => void;
   setFileUrl: (url: string | null) => void;
   setStatus: (status: DraftStatus) => void;
-  setError: (message: string | null) => void;
   setPersisted: (id: string) => void;
   loadExtraction: (data: ExtractionData) => void;
   /** Clear the previewed doc + form data (new import) but keep the draft id. */
@@ -97,7 +95,6 @@ export const useBillDraft = create<BillDraftState>((set) => ({
   form: EMPTY_FORM,
   lineItems: [{ ...EMPTY_ITEM }],
   status: "idle",
-  error: null,
   file: null,
   fileUrl: null,
   billId: null,
@@ -119,21 +116,18 @@ export const useBillDraft = create<BillDraftState>((set) => ({
   setFile: (file) => set({ file }),
   setFileUrl: (fileUrl) => set({ fileUrl }),
   setStatus: (status) => set({ status }),
-  setError: (message) => set({ error: message }),
   setPersisted: (id) => set({ billId: id }),
   loadExtraction: (data) =>
     set({
       form: formFromExtraction(data),
       lineItems: itemsFromExtraction(data),
       status: "ready",
-      error: null,
     }),
   clearContent: () =>
     set({
       form: EMPTY_FORM,
       lineItems: [{ ...EMPTY_ITEM }],
       status: "idle",
-      error: null,
       file: null,
       fileUrl: null,
     }),
@@ -142,7 +136,6 @@ export const useBillDraft = create<BillDraftState>((set) => ({
       form: EMPTY_FORM,
       lineItems: [{ ...EMPTY_ITEM }],
       status: "idle",
-      error: null,
       file: null,
       fileUrl: null,
       billId: null,

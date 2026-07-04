@@ -41,7 +41,7 @@ packages/ui-system  → the design system (components + Storybook)
 - **Zustand** (client state) · **TanStack Query** (server cache)
 - **Prisma 7** + **Neon** (Postgres)
 - **Vercel AI SDK** (`ai` + `@ai-sdk/anthropic`) → **Claude**; **pdf-lib** for PDF validation
-- **Storybook 10** (design-system docs)
+- **Storybook 10** (design-system docs) · **Vitest** (unit / store / a DB integration test)
 
 ## Architecture
 
@@ -100,9 +100,9 @@ On upload, two kinds of errors can surface:
   It still renders on mobile, but the flows would need rethinking for a real mobile version.
 - **Bulk ingestion** — no multi-PDF or Excel/CSV upload. It's an MVP and I wanted to show
   the core flow — **upload → ingest → recognize** — so bulk was set aside.
-- **More complex table filters** — the toolbar leaves a few **inert placeholders** on
-  purpose: with proper state management the table could keep gaining filters/data the same
-  way, but I didn't build them out.
+- **Advanced table filters** — beyond the status tabs, search, column controls, sorting, and
+  CSV **export** that do ship, I didn't build richer filters (by vendor / date range). With the
+  view store already in place, they'd slot in the same way.
 - **Payment flows** — the concrete payment logic is left out. I wanted to show a normal
   bill-advancement flow (draft → … → paid); the real payment flows and their business rules
   would go deeper than the MVP needs.
@@ -110,6 +110,8 @@ On upload, two kinds of errors can surface:
   actions attribute everything to that one user. No login, roles, or multi-tenant.
 - **File storage** — PDFs aren't uploaded to external object storage (e.g. **S3**); they're
   stored in the DB as **blobs** (`Bytes` / BYTEA). Fine for the MVP, wouldn't scale.
+- **Observability** — no monitoring / APM (e.g. **Datadog** / **New Relic**) and no error
+  tracking (e.g. **Sentry**). You'd wire these up for production.
 
 ## How it was built
 
@@ -132,4 +134,5 @@ npm run db:migrate -w web   # apply migrations
 npm run db:seed -w web      # demo data
 npm run dev                 # web app  (apps/web)
 npm run storybook           # design system (packages/ui-system)
+npm run test -w web         # tests (Vitest) — co-located in _tests/ folders
 ```

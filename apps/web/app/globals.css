@@ -1,7 +1,9 @@
 /* Design system theme (tokens, base layer, Tailwind) lives in ui-system.
-   Both directives use relative paths: @source must be a path (it's a filesystem
-   glob, not module resolution), so @import is kept a path too for consistency. */
-@import "../../../packages/ui-system/src/styles/globals.css";
+   Import via the package specifier (resolved through the workspace symlink) — a
+   relative "../../.." path escapes the app root and breaks Turbopack builds when
+   Vercel's Root Directory is apps/web. @source below stays a path: it's a
+   filesystem glob (not module resolution), so reaching above the root is fine. */
+@import "ui-system/styles.css";
 
 /* Tailwind ignores node_modules by default — scan the design-system source
    so the classes its components use get generated in the app build too. */

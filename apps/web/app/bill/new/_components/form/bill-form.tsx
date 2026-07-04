@@ -16,7 +16,7 @@ import { useBillTopbar } from "@/app/bill/_components/bill-topbar";
 import type { BillRow } from "@/lib/bill/row";
 import { billHref } from "@/lib/bill/bills";
 import { findDuplicate } from "@/lib/bill/duplicates";
-import { useBillDraft } from "@/stores/bill-draft";
+import { useBillDraft, type InitialDraft } from "@/stores/bill-draft";
 import { useDraftActions } from "@/hooks/use-draft-actions";
 import { DetailsSection } from "./details-section";
 import { FormFooter } from "./form-footer";
@@ -30,7 +30,13 @@ import { VendorSection } from "./vendor-section";
  * Create-bill form. Wires the draft store into the (presentational) section
  * components and owns the save/create orchestration + transient save status.
  */
-export function BillForm({ bills }: { bills: BillRow[] }) {
+export function BillForm({
+  bills,
+  initialDraft,
+}: {
+  bills: BillRow[];
+  initialDraft: InitialDraft | null;
+}) {
   const form = useBillDraft((s) => s.form);
   const lineItems = useBillDraft((s) => s.lineItems);
   const setField = useBillDraft((s) => s.setField);
@@ -39,6 +45,16 @@ export function BillForm({ bills }: { bills: BillRow[] }) {
   const removeLineItem = useBillDraft((s) => s.removeLineItem);
   const status = useBillDraft((s) => s.status);
   const billId = useBillDraft((s) => s.billId);
+  const loadDraft = useBillDraft((s) => s.loadDraft);
+  const reset = useBillDraft((s) => s.reset);
+
+  // Reopening a draft (?id=) rehydrates the store from it; a bare /bill/new
+  // starts fresh. Keyed on the draft id so switching drafts reloads.
+  useEffect(() => {
+    if (initialDraft) loadDraft(initialDraft);
+    else reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDraft?.id]);
 
   // Create-flow mutations (RQ), same pattern as the table's useBillActions.
   const { save, confirm, remove } = useDraftActions();

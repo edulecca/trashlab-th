@@ -26,9 +26,9 @@ export function isOverdue(
   return bill.status !== "PAID" && bill.dueDate < now;
 }
 
-/** Where clicking a bill goes: drafts continue in the create flow, the rest open the read-only view. */
+/** Where clicking a bill goes: drafts reopen in the (editable) create flow, the rest open the read-only view. */
 export function billHref(id: string, status: BillRow["status"]): string {
-  return status === "DRAFT" ? "/bill/new" : `/bill/view/${id}`;
+  return status === "DRAFT" ? `/bill/new?id=${id}` : `/bill/view/${id}`;
 }
 
 /** Free-text search predicate for a bill row — matches vendor + invoice number. */

@@ -44,6 +44,15 @@ const EMPTY_FORM: DraftForm = {
 
 const EMPTY_ITEM: DraftLineItem = { description: "", amount: "" };
 
+/** Shape to rehydrate the store from a persisted draft opened by id (?id=). */
+export type InitialDraft = {
+  id: string;
+  form: DraftForm;
+  lineItems: DraftLineItem[];
+  /** URL to preview the stored PDF (the API route), or null if none. */
+  fileUrl: string | null;
+};
+
 function formFromExtraction(data: ExtractionData): DraftForm {
   return {
     vendorName: data.vendor.name ?? "",
@@ -86,6 +95,8 @@ type BillDraftState = {
   setStatus: (status: DraftStatus) => void;
   setPersisted: (id: string) => void;
   loadExtraction: (data: ExtractionData) => void;
+  /** Rehydrate the whole store from a persisted draft opened by id. */
+  loadDraft: (draft: InitialDraft) => void;
   /** Clear the previewed doc + form data (new import) but keep the draft id. */
   clearContent: () => void;
   reset: () => void;
@@ -122,6 +133,15 @@ export const useBillDraft = create<BillDraftState>((set) => ({
       form: formFromExtraction(data),
       lineItems: itemsFromExtraction(data),
       status: "ready",
+    }),
+  loadDraft: (draft) =>
+    set({
+      form: draft.form,
+      lineItems: draft.lineItems.length > 0 ? draft.lineItems : [{ ...EMPTY_ITEM }],
+      status: "ready",
+      file: null,
+      fileUrl: draft.fileUrl,
+      billId: draft.id,
     }),
   clearContent: () =>
     set({

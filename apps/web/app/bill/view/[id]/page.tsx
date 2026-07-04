@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { toBillRow } from "@/lib/bill/row";
-import { getBillView } from "./_lib/bill-view";
+import { getBillView } from "@/lib/bill/bill-view";
 import { visibleBillsWhere } from "@/lib/bill/bills";
 import { prisma } from "@/lib/prisma";
 
@@ -19,7 +19,7 @@ export default async function BillViewPage({
   const bill = await getBillView(id);
   if (!bill) notFound();
   // Drafts are edited in the create flow, not viewed read-only.
-  if (bill.status === "DRAFT") redirect("/bill/new");
+  if (bill.status === "DRAFT") redirect(`/bill/new?id=${id}`);
 
   // Rail data (same shape as the new-bill screen).
   const bills = await prisma.bill.findMany({

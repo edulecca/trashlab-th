@@ -40,7 +40,7 @@ describe("matchesBillSearch", () => {
 
 describe("billHref", () => {
   it("drafts open the create flow, everything else the read-only view", () => {
-    expect(billHref("x", "DRAFT")).toBe("/bill/new");
+    expect(billHref("x", "DRAFT")).toBe("/bill/new?id=x");
     expect(billHref("x", "PAID")).toBe("/bill/view/x");
   });
 });

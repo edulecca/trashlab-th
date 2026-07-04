@@ -1,18 +1,14 @@
 import "dotenv/config";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 import { PrismaClient, Prisma } from "../generated/prisma/client";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-// --- invoice file blobs: sample PDFs shipped as fixtures, embedded as BYTEA.
-// No object storage (S3) for the MVP — the bill's file lives in the DB.
-const fixture = (name: string) => readFileSync(join(__dirname, "fixtures", name));
-const invoicePdfA = fixture("sample-invoice.pdf");
-const invoicePdfB = fixture("sample-invoice-2.pdf");
+// The bill's attached PDF is GENERATED from its own data (below), so the document
+// matches the bill. No object storage (S3) for the MVP — the blob lives in the DB.
 
 // --- date helpers (relative to run time) ---------------------------------
 const now = new Date();
@@ -46,6 +42,126 @@ function lineItems(items: SeedLineItem[], taxRate = 0) {
     amount: new Prisma.Decimal(subtotal + tax),
     tax: new Prisma.Decimal(tax),
   };
+}
+
+// --- invoice PDF generator: renders a bill's own data into a simple invoice ---
+type BillForPdf = {
+  number: string;
+  currency: string;
+  invoiceDate: Date;
+  dueDate: Date;
+  amount: Prisma.Decimal;
+  tax: Prisma.Decimal;
+  vendor: { name: string; email: string | null };
+  lineItems: {
+    description: string;
+    quantity: Prisma.Decimal;
+    unitPrice: Prisma.Decimal;
+    total: Prisma.Decimal;
+  }[];
+};
+
+// StandardFonts (WinAnsi) can't encode every glyph; drop em/en dashes and any
+// non-Latin1 char so drawText never throws on seed data.
+const safe = (s: string) =>
+  s.replace(/[—–]/g, "-").replace(/[^\x00-\xFF]/g, "");
+
+async function invoicePdf(bill: BillForPdf): Promise<Uint8Array<ArrayBuffer>> {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([595.28, 841.89]); // A4
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const { width, height } = page.getSize();
+
+  const dark = rgb(0.1, 0.1, 0.1);
+  const gray = rgb(0.45, 0.45, 0.45);
+  const margin = 50;
+  let y = height - margin;
+
+  const text = (
+    s: string,
+    x: number,
+    size = 10,
+    f = font,
+    color = dark
+  ) => page.drawText(safe(s), { x, y, size, font: f, color });
+
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const money = (n: Prisma.Decimal | number) =>
+    `${bill.currency} ${Number(n).toFixed(2)}`;
+
+  // Header: vendor + "INVOICE"
+  text(bill.vendor.name, margin, 20, bold);
+  const invLabel = "INVOICE";
+  page.drawText(invLabel, {
+    x: width - margin - bold.widthOfTextAtSize(invLabel, 20),
+    y,
+    size: 20,
+    font: bold,
+    color: gray,
+  });
+  y -= 18;
+  if (bill.vendor.email) {
+    text(bill.vendor.email, margin, 10, font, gray);
+  }
+  y -= 34;
+
+  // Meta
+  text(`Invoice #: ${bill.number}`, margin, 10, bold);
+  y -= 15;
+  text(`Invoice date: ${iso(bill.invoiceDate)}`, margin, 10);
+  y -= 15;
+  text(`Due date: ${iso(bill.dueDate)}`, margin, 10);
+  y -= 28;
+
+  // Table header
+  const cQty = 320;
+  const cUnit = 400;
+  const cAmt = 480;
+  text("Description", margin, 9, bold, gray);
+  text("Qty", cQty, 9, bold, gray);
+  text("Unit", cUnit, 9, bold, gray);
+  text("Amount", cAmt, 9, bold, gray);
+  y -= 6;
+  page.drawLine({
+    start: { x: margin, y },
+    end: { x: width - margin, y },
+    thickness: 0.5,
+    color: gray,
+  });
+  y -= 16;
+
+  // Rows
+  for (const li of bill.lineItems) {
+    text(li.description.slice(0, 46), margin, 10);
+    text(String(Number(li.quantity)), cQty, 10);
+    text(Number(li.unitPrice).toFixed(2), cUnit, 10);
+    text(Number(li.total).toFixed(2), cAmt, 10);
+    y -= 15;
+  }
+
+  y -= 8;
+  page.drawLine({
+    start: { x: cUnit, y },
+    end: { x: width - margin, y },
+    thickness: 0.5,
+    color: gray,
+  });
+  y -= 16;
+
+  // Totals
+  const subtotal = Number(bill.amount) - Number(bill.tax);
+  text("Subtotal", cUnit, 10, font, gray);
+  text(money(subtotal), cAmt, 10);
+  y -= 15;
+  text("Tax", cUnit, 10, font, gray);
+  text(money(bill.tax), cAmt, 10);
+  y -= 17;
+  text("Total due", cUnit, 11, bold);
+  text(money(bill.amount), cAmt, 11, bold);
+
+  // Fresh ArrayBuffer-backed array so Prisma's Bytes type is satisfied.
+  return new Uint8Array(await doc.save());
 }
 
 async function main() {
@@ -186,7 +302,6 @@ async function main() {
       currency: "USD",
       invoiceDate: daysFromNow(-40),
       dueDate: daysFromNow(-5), // past due, not paid => overdue
-      file: invoicePdfA,
       paymentMethod: "ach",
       vendorId: figma.id,
       uploadedById: bruno.id,
@@ -231,7 +346,6 @@ async function main() {
       currency: "USD",
       invoiceDate: daysFromNow(-5),
       dueDate: daysFromNow(20),
-      file: invoicePdfB,
       paymentMethod: "ach",
       vendorId: vercel.id,
       uploadedById: bruno.id,
@@ -257,7 +371,6 @@ async function main() {
       currency: "USD",
       invoiceDate: daysFromNow(-4),
       dueDate: daysFromNow(11),
-      file: invoicePdfA,
       paymentMethod: "check",
       vendorId: datadog.id,
       uploadedById: ana.id,
@@ -282,7 +395,6 @@ async function main() {
       currency: "USD",
       invoiceDate: daysFromNow(-8),
       dueDate: daysFromNow(15),
-      file: invoicePdfB,
       paymentMethod: "ach",
       vendorId: linear.id,
       uploadedById: ana.id,
@@ -310,7 +422,6 @@ async function main() {
       currency: "USD",
       invoiceDate: daysFromNow(-6),
       dueDate: daysFromNow(9),
-      file: invoicePdfA,
       paymentMethod: "check",
       vendorId: aws.id,
       uploadedById: bruno.id,
@@ -333,7 +444,6 @@ async function main() {
       currency: "USD",
       invoiceDate: daysFromNow(-20),
       dueDate: daysFromNow(-1), // past due, not paid => overdue
-      file: invoicePdfB,
       paymentMethod: "check",
       vendorId: slack.id,
       uploadedById: bruno.id,
@@ -401,7 +511,6 @@ async function main() {
       currency: "USD",
       invoiceDate: daysFromNow(-55),
       dueDate: daysFromNow(-25),
-      file: invoicePdfA,
       paymentMethod: "check",
       vendorId: aws.id,
       uploadedById: bruno.id,
@@ -524,7 +633,6 @@ async function main() {
       currency: "USD",
       invoiceDate: daysFromNow(-6),
       dueDate: daysFromNow(12),
-      file: invoicePdfA,
       paymentMethod: "check",
       vendorId: datadog.id,
       uploadedById: bruno.id,
@@ -532,6 +640,20 @@ async function main() {
       lineItems: { create: datadogApprovedItems.create },
     },
   });
+
+  // Attach a generated PDF to every non-MANUAL bill (OCR / EMAIL / CSV) so the
+  // document matches the bill's data. MANUAL bills stay without an attachment.
+  const docBills = await prisma.bill.findMany({
+    where: { source: { not: "MANUAL" } },
+    include: {
+      vendor: { select: { name: true, email: true } },
+      lineItems: { orderBy: { order: "asc" } },
+    },
+  });
+  for (const b of docBills) {
+    const pdf = await invoicePdf(b);
+    await prisma.bill.update({ where: { id: b.id }, data: { file: pdf } });
+  }
 
   const [bills, payments, methods, vendorCount, userCount] = await Promise.all([
     prisma.bill.count(),
@@ -541,7 +663,7 @@ async function main() {
     prisma.user.count(),
   ]);
   console.log(
-    `Seeded ${bills} bills, ${payments} payments, ${methods} payment methods, ${userCount} users, ${vendorCount} vendors.`
+    `Seeded ${bills} bills (${docBills.length} with a generated PDF), ${payments} payments, ${methods} payment methods, ${userCount} users, ${vendorCount} vendors.`
   );
 }
 

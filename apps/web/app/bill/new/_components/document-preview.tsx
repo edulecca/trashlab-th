@@ -29,7 +29,7 @@ export function DocumentPreview() {
         <span className="truncate text-sm font-medium">
           {extracting ? pendingName : (file?.name ?? "Invoice")}
         </span>
-        {file && !extracting ? (
+        {(file || url) && !extracting ? (
           <Button variant="ghost" size="sm" onClick={pick}>
             <RefreshCw data-icon="inline-start" />
             Cambiar

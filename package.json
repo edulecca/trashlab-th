@@ -13,5 +13,10 @@
   },
   "devDependencies": {
     "shadcn": "^4.12.0"
+  },
+  "comment:optionalDependencies": "Linux x64 binaries for Tailwind v4's native engines (oxide + lightningcss). npm only records the host platform's optional binary in the lockfile, so Vercel (linux-x64) lacks these and `next build` fails at CSS processing. Pinned to the resolved parent versions — bump together when tailwind/lightningcss update.",
+  "optionalDependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "4.3.2",
+    "lightningcss-linux-x64-gnu": "1.32.0"
   }
 }

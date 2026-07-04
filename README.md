@@ -6,11 +6,11 @@ visual reference. A company receives bills from vendors and moves each one
 
 ## Demo
 
-<!-- GitHub strips <iframe>, so the demo is a clickable thumbnail (animated GIF preview) that
-     opens the Loom. This renders everywhere GitHub markdown does. To embed a *playable* inline
-     video instead, upload an .mp4 to GitHub (drag it into the README editor on github.com) and
-     use the resulting user-attachments URL. -->
-[![Watch the demo](https://cdn.loom.com/sessions/thumbnails/c0d7171a434646f4afff71f27e877cc3-with-play.gif)](https://www.loom.com/share/c0d7171a434646f4afff71f27e877cc3)
+<!-- GitHub strips <iframe>, so the demo is a clickable thumbnail (animated GIF preview,
+     self-hosted in docs/ so it always renders) that opens the Loom. To embed a *playable*
+     inline video instead, upload an .mp4 to GitHub (drag it into the README editor on
+     github.com) and use the resulting user-attachments URL. -->
+<a href="https://www.loom.com/share/c0d7171a434646f4afff71f27e877cc3" target="_blank" rel="noopener noreferrer"><img src="docs/demo-thumb.gif" alt="Watch the demo" /></a>
 
 - **WEB:** https://trashlab-th-qw7zvtdol-eduleccas-projects.vercel.app/main
 - **STORYBOOK:** https://trashlab-th-ui-system-2zujlr31c-eduleccas-projects.vercel.app/?path=/story/components-textarea--default

@@ -12,8 +12,8 @@ visual reference. A company receives bills from vendors and moves each one
      github.com) and use the resulting user-attachments URL. -->
 <a href="https://www.loom.com/share/c0d7171a434646f4afff71f27e877cc3" target="_blank" rel="noopener noreferrer"><img src="docs/demo-thumb.gif" alt="Watch the demo" /></a>
 
-- **WEB:** https://trashlab-th-qw7zvtdol-eduleccas-projects.vercel.app/main
-- **STORYBOOK:** https://trashlab-th-ui-system-2zujlr31c-eduleccas-projects.vercel.app/?path=/story/components-textarea--default
+- **WEB:** https://trashlab-th-web.vercel.app/main
+- **STORYBOOK:** https://trashlab-th-ui-system.vercel.app/
 
 ## Approach
 

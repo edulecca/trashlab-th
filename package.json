@@ -14,9 +14,14 @@
   "devDependencies": {
     "shadcn": "^4.12.0"
   },
-  "comment:optionalDependencies": "Linux x64 binaries for Tailwind v4's native engines (oxide + lightningcss). npm only records the host platform's optional binary in the lockfile, so Vercel (linux-x64) lacks these and `next build` fails at CSS processing. Pinned to the resolved parent versions — bump together when tailwind/lightningcss update.",
+  "comment:optionalDependencies": "Linux x64 (glibc) native binaries for the build toolchains: Tailwind v4 (oxide + lightningcss) used by `next build`, and the Storybook/vite8 chain (rolldown, oxc, unrs-resolver, esbuild) used by `build-storybook`. npm only records the host platform's optional binary in the lockfile (npm/cli#4828), so Vercel (linux-x64) lacks these and builds fail loading the native binding. Pinned to the resolved parent versions — bump each together with its parent on upgrade.",
   "optionalDependencies": {
     "@tailwindcss/oxide-linux-x64-gnu": "4.3.2",
-    "lightningcss-linux-x64-gnu": "1.32.0"
+    "lightningcss-linux-x64-gnu": "1.32.0",
+    "@rolldown/binding-linux-x64-gnu": "1.1.3",
+    "@oxc-parser/binding-linux-x64-gnu": "0.127.0",
+    "@oxc-resolver/binding-linux-x64-gnu": "11.22.0",
+    "@unrs/resolver-binding-linux-x64-gnu": "1.12.2",
+    "@esbuild/linux-x64": "0.28.1"
   }
 }

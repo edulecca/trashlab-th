@@ -10,9 +10,12 @@ import {
   DropdownMenuTrigger,
 } from "ui-system";
 
+import Link from "next/link";
+
 import { useBillTopbar } from "@/app/bill/_components/bill-topbar";
 import type { BillRow } from "@/lib/bill/row";
-import { findDuplicateNumber } from "@/lib/bill/duplicates";
+import { billHref } from "@/lib/bill/bills";
+import { findDuplicate } from "@/lib/bill/duplicates";
 import { useBillDraft } from "@/stores/bill-draft";
 import { useDraftActions } from "@/hooks/use-draft-actions";
 import { DetailsSection } from "./details-section";
@@ -57,7 +60,7 @@ export function BillForm({ bills }: { bills: BillRow[] }) {
   });
 
   // UI-only duplicate check: does the current draft repeat a loaded bill?
-  const duplicateOf = findDuplicateNumber(bills, {
+  const duplicate = findDuplicate(bills, {
     number: form.number,
     vendor: form.vendorName,
     excludeId: billId ?? undefined,
@@ -103,13 +106,20 @@ export function BillForm({ bills }: { bills: BillRow[] }) {
             </DropdownMenu>
           ) : null}
         </div>
-        {duplicateOf ? (
-          <div className="mt-3 flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        {duplicate ? (
+          <Link
+            href={billHref(duplicate.id, duplicate.status)}
+            className="mt-3 flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive transition-colors hover:bg-destructive/15"
+          >
             <AlertCircle className="size-4 shrink-0" />
             <span>
-              This bill duplicates <strong>{duplicateOf}</strong>.
+              This bill duplicates{" "}
+              <strong className="underline underline-offset-2">
+                {duplicate.number}
+              </strong>
+              .
             </span>
-          </div>
+          </Link>
         ) : null}
       </div>
 

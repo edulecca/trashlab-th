@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import type { BillRow } from "../row";
-import { annotateDuplicates, findDuplicateNumber } from "../duplicates";
+import { annotateDuplicates, findDuplicate } from "../duplicates";
 
 const row = (
   id: string,
@@ -44,12 +44,12 @@ describe("annotateDuplicates", () => {
   });
 });
 
-describe("findDuplicateNumber", () => {
-  it("returns the matching bill's number (excluding self); null for a blank number", () => {
+describe("findDuplicate", () => {
+  it("returns the matching bill (excluding self); null for a blank number", () => {
     const rows = [row("a", "INV-1", "Acme", "2026-01-01")];
     expect(
-      findDuplicateNumber(rows, { number: "INV-1", vendor: "Acme", excludeId: "b" })
-    ).toBe("INV-1");
-    expect(findDuplicateNumber(rows, { number: "", vendor: "Acme" })).toBeNull();
+      findDuplicate(rows, { number: "INV-1", vendor: "Acme", excludeId: "b" })?.id
+    ).toBe("a");
+    expect(findDuplicate(rows, { number: "", vendor: "Acme" })).toBeNull();
   });
 });

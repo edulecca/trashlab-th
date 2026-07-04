@@ -51,13 +51,14 @@ export function annotateDuplicates(rows: BillRow[]): BillRow[] {
 }
 
 /**
- * The invoice number of the earliest bill matching `number` + `vendor` in
- * `rows`, excluding `excludeId`. Used by the create screen's duplicate banner.
+ * The earliest (original) bill matching `number` + `vendor` in `rows`,
+ * excluding `excludeId` — or null if none. Used by the create screen's
+ * duplicate banner, which links to it.
  */
-export function findDuplicateNumber(
+export function findDuplicate(
   rows: BillRow[],
   target: { number: string; vendor: string; excludeId?: string }
-): string | null {
+): BillRow | null {
   if (!qualifies(target.number)) return null;
   const key = keyOf(target.number, target.vendor);
   const matches = rows
@@ -66,5 +67,5 @@ export function findDuplicateNumber(
     .sort(
       (a, b) => a.uploadedAt.localeCompare(b.uploadedAt) || a.id.localeCompare(b.id)
     );
-  return matches.length > 0 ? matches[0].number : null;
+  return matches.length > 0 ? matches[0] : null;
 }
